@@ -7,8 +7,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'icons': ['@fortawesome/fontawesome-free']
+          'react-vendor': ['react', 'react-dom', 'react-router-dom']
+          // REMOVE completamente a linha do '@fortawesome/fontawesome-free'
         }
       }
     },
