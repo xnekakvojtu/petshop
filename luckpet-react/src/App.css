@@ -1,0 +1,17 @@
+/* src/App.css (adicione no final) */
+.full-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Para garantir que as páginas full ocupem toda a tela */
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
