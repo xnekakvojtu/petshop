@@ -1,4 +1,4 @@
-// src/components/Header.tsx - VERSÃO COM LOGOUT FUNCIONANDO
+// src/components/Header.tsx - VERSÃO CLEAN
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
@@ -18,23 +18,20 @@ const Header: React.FC<HeaderProps> = ({
   user: propUser 
 }) => {
   const navigate = useNavigate();
-  const { user: authUser, logout: authLogout, isLoggedIn } = useAuth(); // ADICIONE isLoggedIn aqui
+  const { user: authUser, logout: authLogout, isLoggedIn } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // SEM estado local para user - usa diretamente do auth
   const user = propUser || authUser;
 
   useEffect(() => {
-    // Carregar contagem de favoritos
     const wishlist = getWishlist();
     setWishlistCount(wishlist.length);
 
     const handleStorageChange = () => {
-      // Atualizar contagem de favoritos
       const updatedWishlist = getWishlist();
       setWishlistCount(updatedWishlist.length);
     };
@@ -53,9 +50,7 @@ const Header: React.FC<HeaderProps> = ({
     };
 
     const handleUserLoggedOut = () => {
-      console.log('📢 Evento userLoggedOut recebido - fechando menu e recarregando');
       setShowUserMenu(false);
-      // Força atualização fechando o menu
       setTimeout(() => {
         window.location.reload();
       }, 100);
@@ -63,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('resize', handleResize);
-    window.addEventListener('userLoggedOut', handleUserLoggedOut); // OUVE O EVENTO DE LOGOUT
+    window.addEventListener('userLoggedOut', handleUserLoggedOut);
     document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
@@ -82,15 +77,14 @@ const Header: React.FC<HeaderProps> = ({
     }
   }, [showUserMenu]);
 
-  const handleLogout = async () => { // TORNE ASSÍNCRONA
+  const handleLogout = async () => {
     if (window.confirm('Tem certeza que deseja sair?')) {
       try {
-        setShowUserMenu(false); // Fecha o menu imediatamente
-        await authLogout(); // Aguarda o logout
-        // O logout já recarrega a página automaticamente
+        setShowUserMenu(false);
+        await authLogout();
       } catch (error) {
         console.error('Erro no logout:', error);
-        window.location.reload(); // Força recarga se der erro
+        window.location.reload();
       }
     }
   };
@@ -126,17 +120,13 @@ const Header: React.FC<HeaderProps> = ({
     return savedCredits ? parseInt(savedCredits) : 0;
   };
 
-  // Use isLoggedIn do useAuth para controle mais preciso
   const isUserLoggedIn = isLoggedIn;
 
   return (
     <>
-      {/* Promo Bar */}
+      {/* Promo Bar Clean */}
       <div className="promo-bar">
-        <p>
-          <strong>🎁 LuckPet Já!</strong> Receba em até 1h* 
-          <a href="#" className="saiba-mais"> Saiba mais</a>
-        </p>
+        <p>🚚 Entrega em até 1 hora</p>
       </div>
 
       <header className="header">
@@ -150,7 +140,7 @@ const Header: React.FC<HeaderProps> = ({
             </Link>
           </div>
 
-          {/* Search - Desktop e Mobile quando ativado */}
+          {/* Search */}
           <div className={`header-search ${showSearchMobile ? 'mobile-active' : ''}`}>
             {(!isMobile || showSearchMobile) && (
               <>
@@ -171,7 +161,6 @@ const Header: React.FC<HeaderProps> = ({
           {/* Actions */}
           <div className="header-actions">
             
-            {/* Search Toggle no Mobile */}
             {isMobile && !showSearchMobile && (
               <button 
                 className="action-btn search-toggle"
@@ -197,7 +186,7 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* Usuário */}
             <div className="user-dropdown-container" ref={userMenuRef}>
-              {isUserLoggedIn && user ? ( // ALTERADO: Usa isUserLoggedIn
+              {isUserLoggedIn && user ? (
                 <>
                   <button 
                     className="user-btn"
@@ -224,7 +213,6 @@ const Header: React.FC<HeaderProps> = ({
                     <i className={`fas fa-chevron-down dropdown-arrow ${showUserMenu ? 'rotate' : ''}`}></i>
                   </button>
 
-                  {/* Overlay para mobile */}
                   {showUserMenu && isMobile && (
                     <div 
                       className="dropdown-overlay"
@@ -247,11 +235,6 @@ const Header: React.FC<HeaderProps> = ({
                         </div>
                         <div className="dropdown-user-info">
                           <h3 className="dropdown-name">{user.name}</h3>
-                          <div className="dropdown-level">
-                            <span className="level-badge">
-                              {user.isGuest ? 'Usuário Convidado' : 'Cliente Premium'}
-                            </span>
-                          </div>
                           <div className="dropdown-credits">
                             <i className="fas fa-coins"></i>
                             <span>{getUserCredits()} LuckCoins</span>
@@ -277,10 +260,8 @@ const Header: React.FC<HeaderProps> = ({
                         >
                           <i className="fas fa-calendar-alt"></i> 
                           <span>Meus Agendamentos</span>
-                          <span className="dropdown-badge">Novo</span>
                         </button>
                         
-                        {/* Botão de Favoritos no Menu */}
                         <button 
                           className="dropdown-item wishlist-item"
                           onClick={navigateToWishlist}
@@ -299,15 +280,6 @@ const Header: React.FC<HeaderProps> = ({
                         >
                           <i className="fas fa-box"></i> 
                           <span>Meus Pedidos</span>
-                        </Link>
-                        
-                        <Link 
-                          to="/configuracoes" 
-                          className="dropdown-item"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          <i className="fas fa-cog"></i> 
-                          <span>Configurações</span>
                         </Link>
                         
                         <div className="dropdown-divider"></div>
@@ -337,29 +309,20 @@ const Header: React.FC<HeaderProps> = ({
       </header>
 
       <style >{`
-        /* Estilos para a promo bar */
+        /* Promo Bar Clean */
         .promo-bar {
-          background: linear-gradient(90deg, #8B5CF6 0%, #7C3AED 100%);
+          background: #7C3AED;
           color: white;
-          padding: 0.5rem 0;
+          padding: 8px 0;
           text-align: center;
-          font-size: 0.875rem;
+          font-size: 14px;
+          font-weight: 500;
         }
 
-        .saiba-mais {
-          color: #FBBF24;
-          text-decoration: none;
-          margin-left: 0.5rem;
-        }
-
-        .saiba-mais:hover {
-          text-decoration: underline;
-        }
-
-        /* Estilos para o header */
+        /* Header */
         .header {
           background: white;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          border-bottom: 1px solid #F0F0F0;
           position: sticky;
           top: 0;
           z-index: 100;
@@ -368,63 +331,52 @@ const Header: React.FC<HeaderProps> = ({
         .header-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 1rem;
+          padding: 16px 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1rem;
+          gap: 20px;
         }
 
         /* Logo */
-        .header-left {
-          flex-shrink: 0;
-        }
-
         .logo {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 8px;
           text-decoration: none;
-          color: #1F2937;
+          color: #1A1A1A;
           font-weight: 700;
-          font-size: 1.5rem;
-          transition: color 0.2s;
-        }
-
-        .logo:hover {
-          color: #8B5CF6;
+          font-size: 20px;
         }
 
         .logo i {
-          color: #8B5CF6;
+          color: #7C3AED;
         }
 
         /* Search */
         .header-search {
           flex: 1;
-          max-width: 600px;
+          max-width: 500px;
           position: relative;
         }
 
         .close-search {
           position: absolute;
-          right: 1rem;
+          right: 12px;
           top: 50%;
           transform: translateY(-50%);
           background: none;
           border: none;
-          color: #6B7280;
+          color: #666;
           cursor: pointer;
-          padding: 0.5rem;
-          z-index: 10;
+          padding: 6px;
         }
 
         /* Actions */
         .header-actions {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          flex-shrink: 0;
+          gap: 12px;
         }
 
         .action-btn {
@@ -432,50 +384,40 @@ const Header: React.FC<HeaderProps> = ({
           border: none;
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem;
-          color: #4B5563;
+          gap: 8px;
+          padding: 8px;
+          color: #666;
           cursor: pointer;
           text-decoration: none;
-          border-radius: 0.5rem;
-          transition: all 0.2s;
-          position: relative;
+          border-radius: 6px;
+          transition: background-color 0.2s;
         }
 
         .action-btn:hover {
-          background: #F3F4F6;
-          color: #8B5CF6;
+          background: #F5F5F5;
         }
 
-        /* CARRINHO - ESTILOS ESPECÍFICOS */
+        /* Carrinho */
         .cart-btn {
           position: relative;
         }
 
         .cart-btn .btn-icon {
           position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
         .cart-btn i {
-          font-size: 1.2rem;
-          color: #4B5563;
-          transition: color 0.2s;
-        }
-
-        .cart-btn:hover i {
-          color: #8B5CF6;
+          font-size: 20px;
+          color: #666;
         }
 
         .cart-btn .badge {
           position: absolute;
-          top: -8px;
-          right: -8px;
+          top: -6px;
+          right: -6px;
           background: #EF4444;
           color: white;
-          font-size: 0.7rem;
+          font-size: 12px;
           font-weight: 600;
           min-width: 18px;
           height: 18px;
@@ -483,12 +425,10 @@ const Header: React.FC<HeaderProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid white;
         }
 
         .btn-text {
-          font-size: 0.875rem;
-          font-weight: 500;
+          font-size: 14px;
         }
 
         /* User Dropdown */
@@ -499,17 +439,12 @@ const Header: React.FC<HeaderProps> = ({
         .user-btn {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 8px;
           background: none;
           border: none;
-          padding: 0.25rem;
+          padding: 4px;
           cursor: pointer;
-          border-radius: 2rem;
-          transition: all 0.2s;
-        }
-
-        .user-btn:hover {
-          background: #F3F4F6;
+          border-radius: 20px;
         }
 
         .user-avatar-container {
@@ -523,12 +458,7 @@ const Header: React.FC<HeaderProps> = ({
           height: 100%;
           border-radius: 50%;
           object-fit: cover;
-          border: 2px solid #E5E7EB;
-          transition: border-color 0.2s;
-        }
-
-        .user-btn:hover .user-avatar {
-          border-color: #8B5CF6;
+          border: 2px solid #F0F0F0;
         }
 
         .wishlist-indicator {
@@ -537,26 +467,24 @@ const Header: React.FC<HeaderProps> = ({
           right: -4px;
           background: #EF4444;
           color: white;
-          font-size: 0.6rem;
-          font-weight: 700;
+          font-size: 11px;
+          font-weight: 600;
           min-width: 16px;
           height: 16px;
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid white;
         }
 
         .user-name {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #1F2937;
+          font-size: 14px;
+          color: #333;
         }
 
         .dropdown-arrow {
-          font-size: 0.75rem;
-          color: #6B7280;
+          font-size: 12px;
+          color: #666;
           transition: transform 0.2s;
         }
 
@@ -577,40 +505,27 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-menu {
           position: absolute;
           right: 0;
-          top: calc(100% + 0.5rem);
+          top: calc(100% + 8px);
           background: white;
-          border-radius: 0.75rem;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-          min-width: 300px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          width: 280px;
           z-index: 100;
-          animation: slideDown 0.2s ease-out;
           overflow: hidden;
         }
 
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
         .dropdown-header {
-          padding: 1.25rem;
-          background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+          padding: 16px;
+          background: #FAFAFA;
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 12px;
         }
 
         .dropdown-avatar-container {
           position: relative;
-          width: 60px;
-          height: 60px;
-          flex-shrink: 0;
+          width: 48px;
+          height: 48px;
         }
 
         .dropdown-avatar {
@@ -618,8 +533,7 @@ const Header: React.FC<HeaderProps> = ({
           height: 100%;
           border-radius: 50%;
           object-fit: cover;
-          border: 3px solid white;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          border: 2px solid white;
         }
 
         .dropdown-wishlist-count {
@@ -628,127 +542,96 @@ const Header: React.FC<HeaderProps> = ({
           right: -4px;
           background: #EF4444;
           color: white;
-          font-size: 0.7rem;
-          font-weight: 700;
-          min-width: 20px;
-          height: 20px;
-          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
+          min-width: 18px;
+          height: 18px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid white;
         }
 
         .dropdown-user-info {
           flex: 1;
-          min-width: 0;
         }
 
         .dropdown-name {
-          font-size: 1rem;
+          font-size: 16px;
           font-weight: 600;
-          color: #1F2937;
-          margin-bottom: 0.25rem;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .level-badge {
-          display: inline-block;
-          background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
-          color: white;
-          font-size: 0.75rem;
-          font-weight: 600;
-          padding: 0.25rem 0.75rem;
-          border-radius: 1rem;
+          color: #1A1A1A;
+          margin-bottom: 4px;
         }
 
         .dropdown-credits {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          color: #8B5CF6;
-          font-weight: 600;
-          font-size: 0.875rem;
-          margin-top: 0.5rem;
+          gap: 6px;
+          color: #7C3AED;
+          font-size: 14px;
+          font-weight: 500;
         }
 
         .dropdown-divider {
           height: 1px;
-          background: #E5E7EB;
-          margin: 0.5rem 0;
+          background: #F0F0F0;
+          margin: 8px 0;
         }
 
         .dropdown-items {
-          padding: 0.5rem;
+          padding: 8px;
         }
 
         .dropdown-item {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 12px;
           width: 100%;
-          padding: 0.75rem 1rem;
+          padding: 12px;
           background: none;
           border: none;
-          color: #4B5563;
+          color: #666;
           text-decoration: none;
-          font-size: 0.875rem;
-          border-radius: 0.5rem;
+          font-size: 14px;
+          border-radius: 6px;
           cursor: pointer;
-          transition: all 0.2s;
-          position: relative;
+          transition: background-color 0.2s;
         }
 
         .dropdown-item:hover {
-          background: #F3F4F6;
-          color: #8B5CF6;
+          background: #F5F5F5;
         }
 
         .dropdown-item i {
           width: 20px;
           text-align: center;
-          color: #9CA3AF;
+          color: #888;
         }
 
-        .dropdown-item.wishlist-item {
+        .wishlist-item {
           color: #EF4444;
         }
 
-        .dropdown-item.wishlist-item:hover {
-          background: #FEE2E2;
-          color: #DC2626;
-        }
-
-        .dropdown-item.wishlist-item i {
+        .wishlist-item i {
           color: #EF4444;
         }
 
         .dropdown-badge {
           position: absolute;
-          right: 1rem;
-          background: #10B981;
+          right: 12px;
+          background: #EF4444;
           color: white;
-          font-size: 0.7rem;
-          font-weight: 700;
+          font-size: 12px;
+          font-weight: 600;
           padding: 2px 8px;
           border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
-        .dropdown-item.logout {
+        .logout {
           color: #EF4444;
         }
 
-        .dropdown-item.logout:hover {
-          background: #FEE2E2;
-          color: #DC2626;
-        }
-
-        .dropdown-item.logout i {
+        .logout i {
           color: #EF4444;
         }
 
@@ -758,8 +641,13 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         @media (max-width: 768px) {
+          .promo-bar {
+            padding: 6px 0;
+            font-size: 13px;
+          }
+
           .header-container {
-            padding: 0.75rem 1rem;
+            padding: 12px 16px;
             flex-wrap: wrap;
           }
 
@@ -769,14 +657,13 @@ const Header: React.FC<HeaderProps> = ({
 
           .header-actions {
             order: 2;
-            gap: 0.5rem;
           }
 
           .header-search {
             order: 3;
             width: 100%;
             max-width: 100%;
-            margin-top: 0.75rem;
+            margin-top: 12px;
             display: none;
           }
 
@@ -796,17 +683,8 @@ const Header: React.FC<HeaderProps> = ({
             display: none;
           }
 
-          /* Carrinho mobile */
           .cart-btn i {
-            font-size: 1.4rem;
-          }
-
-          .cart-btn .badge {
-            top: -6px;
-            right: -6px;
-            font-size: 0.65rem;
-            min-width: 16px;
-            height: 16px;
+            font-size: 22px;
           }
 
           .dropdown-menu.mobile-dropdown {
@@ -816,43 +694,22 @@ const Header: React.FC<HeaderProps> = ({
             left: 0;
             right: 0;
             width: 100%;
-            max-width: 100%;
-            border-radius: 1rem 1rem 0 0;
-            animation: slideUp 0.3s ease-out;
-          }
-
-          @keyframes slideUp {
-            from {
-              transform: translateY(100%);
-            }
-            to {
-              transform: translateY(0);
-            }
-          }
-
-          .dropdown-menu {
-            min-width: auto;
-            width: 100%;
+            border-radius: 12px 12px 0 0;
           }
         }
 
         @media (max-width: 480px) {
           .header-container {
-            padding: 0.5rem;
-            gap: 0.5rem;
-          }
-
-          .promo-bar {
-            font-size: 0.75rem;
-            padding: 0.4rem;
+            padding: 10px 12px;
+            gap: 12px;
           }
 
           .logo {
-            font-size: 1.25rem;
+            font-size: 18px;
           }
 
           .cart-btn {
-            padding: 0.375rem;
+            padding: 6px;
           }
         }
       `}</style>

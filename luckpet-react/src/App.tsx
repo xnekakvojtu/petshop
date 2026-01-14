@@ -16,7 +16,7 @@ import Notification from './components/Notification';
 import { getCart } from './utils/storage';
 import { useAuth } from './hooks/useAuth';
 import './App.css';
-import './styles/components.css';
+
 
 // Componente wrapper para condicionalmente mostrar Header/Footer
 const AppContent: React.FC = () => {
