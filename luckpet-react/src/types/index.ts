@@ -1,4 +1,6 @@
-// src/types/index.ts - ATUALIZADO COM PAGAMENTOS
+// src/types/index.ts - ATUALIZADO COM PAGAMENTOS E ADMIN
+
+// Produtos
 export interface Product {
   id: string;
   name: string;
@@ -8,6 +10,7 @@ export interface Product {
   description?: string;
 }
 
+// Serviços (mantido para compatibilidade)
 export interface Service {
   id: string;
   title: string;
@@ -18,6 +21,18 @@ export interface Service {
   description: string;
 }
 
+// Tipos para Admin - Serviços (novo)
+export interface ServiceType {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+  active: boolean;
+  category?: string;
+}
+
+// Planos
 export interface Plan {
   id: string;
   title: string;
@@ -27,6 +42,7 @@ export interface Plan {
   popular?: boolean;
 }
 
+// Carrinho
 export interface CartItem {
   productId: string;
   name: string;
@@ -35,6 +51,7 @@ export interface CartItem {
   image: string;
 }
 
+// USUÁRIO - ATUALIZADO COM ROLE
 export interface User {
   id: string;
   name: string;
@@ -46,9 +63,13 @@ export interface User {
   createdAt?: string;
   emailVerified?: boolean;
   phone?: string;
+  role?: 'user' | 'admin'; // ⭐ NOVO CAMPO IMPORTANTE ⭐
 }
 
-// Tipos para Agendamento
+// Tipos para Admin
+export type UserRole = 'user' | 'admin';
+
+// Tipos para Agendamento - ATUALIZADO
 export interface Booking {
   id: string;
   userId: string;
@@ -69,19 +90,24 @@ export interface Booking {
   duration: number;
   paymentMethod?: PaymentMethod;
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  cancellationReason?: string; // ⭐ NOVO - motivo do cancelamento
+  customerName?: string; // ⭐ NOVO - nome do cliente
 }
 
+// Slots de tempo
 export interface TimeSlot {
   time: string;
   available: boolean;
   professional?: string;
 }
 
+// Datas disponíveis
 export interface AvailableDate {
   date: string;
   slots: TimeSlot[];
 }
 
+// Profissionais
 export interface Professional {
   id: string;
   name: string;
@@ -107,4 +133,26 @@ export interface PaymentOption {
   icon: string;
   description: string;
   available: boolean;
+}
+
+// TIPOS PARA ADMIN - NOVOS
+export interface AdminStats {
+  totalBookings: number;
+  pendingBookings: number;
+  confirmedBookings: number;
+  todayBookings: number;
+  monthlyRevenue: number;
+  popularServices: Array<{
+    serviceName: string;
+    count: number;
+  }>;
+}
+
+export interface ScheduleConfig {
+  openingTime: string;
+  closingTime: string;
+  slotDuration: number;
+  maxSlotsPerTime: number;
+  blockedDates: string[];
+  workingDays: number[]; // 0 = domingo, 1 = segunda...
 }

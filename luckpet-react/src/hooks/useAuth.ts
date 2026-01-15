@@ -1,4 +1,4 @@
-// src/hooks/useAuth.ts - VERSÃO COM LOGOUT CORRIGIDO
+// src/hooks/useAuth.ts - VERSÃO COM isAdmin
 import { useState, useEffect } from 'react';
 import { User } from '../types';
 import { 
@@ -53,16 +53,23 @@ export const useAuth = () => {
 
   const login = (userData: User) => {
     try {
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('userCredits', userData.credits.toString());
-      setUser(userData);
-      setCredits(userData.credits);
+      // Garantir que tenha role
+      const userWithRole = {
+        ...userData,
+        credits: userData.credits || 200,
+        role: userData.role || 'user'
+      };
       
-      // Disparar evento para atualizar outros componentes
+      localStorage.setItem('user', JSON.stringify(userWithRole));
+      localStorage.setItem('userCredits', userWithRole.credits.toString());
+      setUser(userWithRole);
+      setCredits(userWithRole.credits);
+      
+      // Disparar eventos
       window.dispatchEvent(new Event('authChange'));
       window.dispatchEvent(new Event('storage'));
       
-      console.log('Login realizado:', userData);
+      console.log('Login realizado:', userWithRole);
       return true;
     } catch (error) {
       console.error('Erro ao fazer login:', error);
@@ -89,7 +96,7 @@ export const useAuth = () => {
         'isGuest',
         'isNewUser',
         'logoutTime',
-       'wishlist', 
+        'wishlist', 
         'forceNewGoogleLogin',
         'cart'
       ];
@@ -241,6 +248,7 @@ export const useAuth = () => {
     addInitialCredits,
     isLoggedIn: !!user,
     isGuest: !!user?.isGuest,
+    isAdmin: user?.role === 'admin', // ⭐ ADICIONE ESTA LINHA
     // Funções Firebase
     loginWithEmail: handleLoginWithEmail,
     registerWithEmail: handleRegisterWithEmail,

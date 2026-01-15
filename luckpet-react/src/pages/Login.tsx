@@ -1,7 +1,8 @@
-// src/pages/Login.tsx - COMPLETO E CORRIGIDO
+// src/pages/Login.tsx - COMPLETO E ATUALIZADO
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { User } from '../types';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -145,13 +146,14 @@ const Login: React.FC = () => {
     setLoading(true);
     
     // Criar usuário convidado local
-    const guestUser = {
+    const guestUser: User = {
       id: `guest_${Date.now()}`,
       name: 'Convidado',
       email: 'convidado@luckpet.com',
-      credits: 50,
+      credits: 100,
       isGuest: true,
-      avatar: 'cachorro'
+      avatar: 'cachorro',
+      role: 'user'
     };
     
     login(guestUser);
@@ -160,6 +162,29 @@ const Login: React.FC = () => {
     setSuccess('Entrando como convidado...');
     setTimeout(() => {
       navigate('/');
+      window.location.reload();
+    }, 1000);
+  };
+
+  // Função para login como administrador (teste)
+  const handleAdminLogin = () => {
+    setLoading(true);
+    
+    const adminUser: User = {
+      id: 'admin_123',
+      name: 'Administrador',
+      email: 'admin@luckpet.com',
+      credits: 1000,
+      isGuest: false,
+      avatar: 'admin',
+      role: 'admin'
+    };
+    
+    login(adminUser);
+    
+    setSuccess('Entrando como Administrador...');
+    setTimeout(() => {
+      navigate('/admin');
       window.location.reload();
     }, 1000);
   };
@@ -339,6 +364,17 @@ const Login: React.FC = () => {
             <i className="fas fa-user-clock"></i>
             Entrar como Convidado
           </button>
+
+          {/* Botão de teste para login como administrador */}
+          <button 
+            type="button" 
+            className="btn-admin"
+            onClick={handleAdminLogin}
+            disabled={loading}
+          >
+            <i className="fas fa-crown"></i>
+            Acesso Administrativo
+          </button>
         </div>
 
         {/* Alternar entre Login e Registro */}
@@ -382,59 +418,83 @@ const Login: React.FC = () => {
         .login-container {
           background: white;
           border-radius: 20px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
           width: 100%;
           max-width: 500px;
-          padding: 40px;
+          padding: 50px;
+          animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
         .login-header {
           text-align: center;
-          margin-bottom: 30px;
+          margin-bottom: 35px;
         }
 
         .logo {
           display: inline-flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           text-decoration: none;
           color: #8B5CF6;
-          font-size: 24px;
-          font-weight: 700;
-          margin-bottom: 20px;
+          font-size: 26px;
+          font-weight: 800;
+          margin-bottom: 25px;
+          transition: transform 0.3s ease;
+        }
+
+        .logo:hover {
+          transform: scale(1.05);
         }
 
         .logo i {
-          font-size: 28px;
+          font-size: 32px;
+          background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
 
         .login-header h1 {
-          margin: 0 0 10px 0;
-          font-size: 28px;
+          margin: 0 0 12px 0;
+          font-size: 30px;
           color: #1f2937;
+          font-weight: 700;
+          letter-spacing: -0.5px;
         }
 
         .subtitle {
           color: #6b7280;
           margin: 0;
-          font-size: 15px;
+          font-size: 16px;
+          line-height: 1.5;
         }
 
         .alert {
-          padding: 15px;
-          border-radius: 10px;
-          margin-bottom: 25px;
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin-bottom: 28px;
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-size: 14px;
+          gap: 12px;
+          font-size: 15px;
           animation: slideDown 0.3s ease;
+          backdrop-filter: blur(10px);
         }
 
         @keyframes slideDown {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(-15px);
           }
           to {
             opacity: 1;
@@ -443,65 +503,75 @@ const Login: React.FC = () => {
         }
 
         .alert.error {
-          background: #fee2e2;
+          background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
           color: #dc2626;
-          border: 1px solid #fecaca;
+          border: 1px solid rgba(220, 38, 38, 0.2);
         }
 
         .alert.success {
-          background: #d1fae5;
+          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
           color: #065f46;
-          border: 1px solid #a7f3d0;
+          border: 1px solid rgba(5, 95, 70, 0.2);
         }
 
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 20px;
-          margin-bottom: 25px;
+          gap: 22px;
+          margin-bottom: 30px;
         }
 
         .form-group label {
           display: flex;
           align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-          font-weight: 500;
-          color: #4b5563;
-          font-size: 14px;
+          gap: 10px;
+          margin-bottom: 10px;
+          font-weight: 600;
+          color: #374151;
+          font-size: 15px;
         }
 
         .form-group label i {
           color: #8B5CF6;
-          width: 16px;
+          width: 18px;
+          text-align: center;
         }
 
         .form-group input,
         .form-group select {
           width: 100%;
-          padding: 14px 16px;
+          padding: 16px 18px;
           border: 2px solid #e5e7eb;
-          border-radius: 10px;
-          font-size: 15px;
-          transition: all 0.2s;
+          border-radius: 12px;
+          font-size: 16px;
+          transition: all 0.3s;
           background: white;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
         }
 
         .form-group input:focus,
         .form-group select:focus {
           outline: none;
           border-color: #8B5CF6;
-          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+          transform: translateY(-1px);
         }
 
         .form-group input:disabled,
         .form-group select:disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
+          background: #f9fafb;
         }
 
         .avatar-select {
           cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238B5CF6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 16px center;
+          background-size: 20px;
+          padding-right: 45px;
         }
 
         .form-options {
@@ -514,57 +584,84 @@ const Login: React.FC = () => {
         .checkbox {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           cursor: pointer;
-          font-size: 14px;
-          color: #6b7280;
+          font-size: 15px;
+          color: #4b5563;
+          transition: color 0.2s;
+        }
+
+        .checkbox:hover {
+          color: #374151;
         }
 
         .checkbox input {
-          margin: 0;
+          width: 18px;
+          height: 18px;
+          border-radius: 4px;
+          border: 2px solid #d1d5db;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .checkbox input:checked {
+          background-color: #8B5CF6;
+          border-color: #8B5CF6;
         }
 
         .forgot-password {
           color: #8B5CF6;
           text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
+          font-size: 15px;
+          font-weight: 600;
+          transition: all 0.2s;
+          padding: 4px 0;
         }
 
         .forgot-password:hover {
           text-decoration: underline;
+          transform: translateY(-1px);
         }
 
         .btn-primary {
           background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
           color: white;
           border: none;
-          padding: 16px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: 600;
+          padding: 18px;
+          border-radius: 12px;
+          font-size: 17px;
+          font-weight: 700;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          transition: all 0.3s;
-          margin-top: 10px;
+          gap: 12px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          margin-top: 15px;
+          letter-spacing: 0.3px;
+          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.25);
         }
 
         .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
         }
 
         .btn-primary:disabled {
-          opacity: 0.7;
+          opacity: 0.6;
           cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
 
         .spinner {
-          width: 20px;
-          height: 20px;
+          width: 22px;
+          height: 22px;
           border: 3px solid rgba(255, 255, 255, 0.3);
           border-top-color: white;
           border-radius: 50%;
@@ -578,9 +675,10 @@ const Login: React.FC = () => {
         .divider {
           display: flex;
           align-items: center;
-          margin: 30px 0;
+          margin: 32px 0;
           color: #9ca3af;
-          font-size: 14px;
+          font-size: 15px;
+          font-weight: 500;
         }
 
         .divider::before,
@@ -588,147 +686,225 @@ const Login: React.FC = () => {
           content: '';
           flex: 1;
           height: 1px;
-          background: #e5e7eb;
+          background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
         }
 
         .divider span {
-          padding: 0 15px;
+          padding: 0 20px;
+          background: white;
+          z-index: 1;
         }
 
         .social-buttons {
           display: flex;
           flex-direction: column;
-          gap: 15px;
-          margin-bottom: 25px;
+          gap: 16px;
+          margin-bottom: 30px;
         }
 
         .btn-google,
-        .btn-guest {
-          padding: 15px;
-          border-radius: 10px;
-          font-size: 15px;
+        .btn-guest,
+        .btn-admin {
+          padding: 17px;
+          border-radius: 12px;
+          font-size: 16px;
           font-weight: 600;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 12px;
-          transition: all 0.2s;
-          border: 2px solid #e5e7eb;
-          background: white;
-          color: #4b5563;
+          gap: 14px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 2px solid transparent;
+          letter-spacing: 0.2px;
         }
 
-        .btn-google:hover:not(:disabled),
-        .btn-guest:hover:not(:disabled) {
+        .btn-google {
+          background: white;
+          color: #4b5563;
+          border-color: #e5e7eb;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-google:hover:not(:disabled) {
           background: #f9fafb;
           border-color: #d1d5db;
-          transform: translateY(-2px);
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-guest {
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          color: #475569;
+          border-color: #e2e8f0;
+          box-shadow: 0 4px 12px rgba(148, 163, 184, 0.1);
+        }
+
+        .btn-guest:hover:not(:disabled) {
+          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+          border-color: #cbd5e1;
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px rgba(148, 163, 184, 0.2);
+        }
+
+        .btn-admin {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: white;
+          border: none;
+          margin-top: 8px;
+          box-shadow: 0 4px 15px rgba(15, 23, 42, 0.3);
+        }
+
+        .btn-admin:hover:not(:disabled) {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.4);
+          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         }
 
         .btn-google:disabled,
-        .btn-guest:disabled {
-          opacity: 0.6;
+        .btn-guest:disabled,
+        .btn-admin:disabled {
+          opacity: 0.5;
           cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
 
         .btn-google i {
           color: #DB4437;
-          font-size: 18px;
+          font-size: 20px;
         }
 
         .btn-guest i {
           color: #8B5CF6;
-          font-size: 16px;
+          font-size: 18px;
+        }
+
+        .btn-admin i {
+          color: #fbbf24;
+          font-size: 18px;
         }
 
         .toggle-form {
           text-align: center;
-          margin-bottom: 25px;
+          margin-bottom: 30px;
           color: #6b7280;
-          font-size: 15px;
+          font-size: 16px;
+          padding-top: 10px;
         }
 
         .toggle-btn {
           background: none;
           border: none;
           color: #8B5CF6;
-          font-weight: 600;
+          font-weight: 700;
           cursor: pointer;
           padding: 0;
-          font-size: 15px;
+          font-size: 16px;
+          margin-left: 8px;
+          transition: all 0.2s;
+          position: relative;
         }
 
         .toggle-btn:hover:not(:disabled) {
-          text-decoration: underline;
+          color: #7C3AED;
+          transform: translateY(-1px);
+        }
+
+        .toggle-btn:hover:not(:disabled)::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: linear-gradient(90deg, #8B5CF6, #7C3AED);
+          border-radius: 1px;
         }
 
         .toggle-btn:disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
         }
 
         .back-home {
           text-align: center;
-          padding-top: 25px;
-          border-top: 1px solid #e5e7eb;
+          padding-top: 30px;
+          border-top: 1px solid #f1f5f9;
         }
 
         .back-link {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          color: #6b7280;
+          gap: 10px;
+          color: #64748b;
           text-decoration: none;
-          font-size: 14px;
-          transition: color 0.2s;
+          font-size: 15px;
+          font-weight: 500;
+          transition: all 0.3s;
+          padding: 10px 20px;
+          border-radius: 10px;
         }
 
         .back-link:hover {
           color: #8B5CF6;
+          background: #f8fafc;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         @media (max-width: 768px) {
           .login-container {
-            padding: 30px;
+            padding: 35px;
             max-width: 90%;
+            margin: 20px;
+          }
+
+          .login-header h1 {
+            font-size: 26px;
+          }
+
+          .form-options {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .login-container {
+            padding: 28px 22px;
+            border-radius: 16px;
           }
 
           .login-header h1 {
             font-size: 24px;
           }
 
-          .form-options {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .login-container {
-            padding: 25px 20px;
-          }
-
-          .login-header h1 {
-            font-size: 22px;
-          }
-
           .subtitle {
-            font-size: 14px;
+            font-size: 15px;
           }
 
           .form-group input,
           .form-group select {
-            padding: 12px 14px;
-            font-size: 14px;
+            padding: 14px 16px;
+            font-size: 15px;
           }
 
           .btn-primary,
           .btn-google,
-          .btn-guest {
-            padding: 14px;
-            font-size: 14px;
+          .btn-guest,
+          .btn-admin {
+            padding: 16px;
+            font-size: 15px;
+          }
+
+          .logo {
+            font-size: 24px;
+          }
+
+          .logo i {
+            font-size: 28px;
           }
         }
       `}</style>

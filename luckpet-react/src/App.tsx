@@ -1,4 +1,4 @@
-// src/App.tsx (VERSÃO COMPLETA COM AGENDAMENTO)
+// src/App.tsx (VERSÃO COMPLETA COM AGENDAMENTO E ADMIN)
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Header from './components/Header';
@@ -15,6 +15,12 @@ import LoginAlert from './components/LoginAlert';
 import Notification from './components/Notification';
 import { getCart } from './utils/storage';
 import { useAuth } from './hooks/useAuth';
+import ProtectedRoute from './components/ProtectedRoute'; // ⭐ NOVO
+import AdminDashboard from './pages/AdminDashboard'; // ⭐ NOVO
+import AdminBookings from './pages/AdminBookings'; // ⭐ NOVO
+import AdminServices from './pages/AdminServices'; // ⭐ NOVO
+import AdminClients from './pages/AdminClients'; // ⭐ NOVO
+import AdminSchedule from './pages/AdminSchedule'; // ⭐ NOVO
 import './App.css';
 
 
@@ -31,8 +37,10 @@ const AppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // NÃO mostrar Header e Footer nas seguintes páginas:
-  const hideHeaderFooterPages = ['/login', '/payment', '/agendamentos'];
-  const shouldShowHeaderFooter = !hideHeaderFooterPages.includes(location.pathname);
+  const hideHeaderFooterPages = ['/login', '/payment', '/agendamentos', '/admin']; // ⭐ ATUALIZADO
+  const shouldShowHeaderFooter = !hideHeaderFooterPages.some(page => 
+    location.pathname.startsWith(page)
+  );
 
   const updateCounts = () => {
     const cart = getCart();
@@ -184,8 +192,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="App">
-      {/* Mostrar Header apenas se NÃO for login */}
-      {shouldShowHeaderFooter && (
+      {/* Mostrar Header apenas se NÃO for login ou admin */}
+      {shouldShowHeaderFooter && !location.pathname.startsWith('/admin') && (
         <Header
           cartCount={cartCount}
           onCartClick={() => setIsCartModalOpen(true)}
@@ -201,35 +209,67 @@ const AppContent: React.FC = () => {
           <Route path="/agendamentos" element={
             user ? <BookingsPage /> : <Navigate to="/login" replace />
           } />
+          
+          {/* ROTAS DO ADMIN - NOVAS */}
+          <Route path="/admin" element={
+            <ProtectedRoute requireAdmin>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/bookings" element={
+            <ProtectedRoute requireAdmin>
+              <AdminBookings />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/services" element={
+            <ProtectedRoute requireAdmin>
+              <AdminServices />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/clients" element={
+            <ProtectedRoute requireAdmin>
+              <AdminClients />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/schedule" element={
+            <ProtectedRoute requireAdmin>
+              <AdminSchedule />
+            </ProtectedRoute>
+          } />
+          
           {/* Rota de fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      {/* Mostrar Footer apenas se NÃO for login */}
-      {shouldShowHeaderFooter && <Footer />}
+      {/* Mostrar Footer apenas se NÃO for login ou admin */}
+      {shouldShowHeaderFooter && !location.pathname.startsWith('/admin') && <Footer />}
       
-      {/* Modais e Alertas - sempre disponíveis */}
-      <CartModal
-        isOpen={isCartModalOpen}
-        onClose={() => setIsCartModalOpen(false)}
-        onUpdate={updateCounts}
-      />
-      
-      <WishlistModal
-        isOpen={isWishlistModalOpen}
-        onClose={() => setIsWishlistModalOpen(false)}
-        onUpdate={updateCounts}
-      />
-      
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        serviceType={bookingService}
-        onBookingComplete={handleBookingComplete}
-      />
-      
-      <LoginAlert />
+      {/* Modais e Alertas - disponíveis apenas em páginas não-admin */}
+      {!location.pathname.startsWith('/admin') && (
+        <>
+          <CartModal
+            isOpen={isCartModalOpen}
+            onClose={() => setIsCartModalOpen(false)}
+            onUpdate={updateCounts}
+          />
+          
+          <WishlistModal
+            isOpen={isWishlistModalOpen}
+            onClose={() => setIsWishlistModalOpen(false)}
+            onUpdate={updateCounts}
+          />
+          
+          <BookingModal
+            isOpen={isBookingModalOpen}
+            onClose={() => setIsBookingModalOpen(false)}
+            serviceType={bookingService}
+            onBookingComplete={handleBookingComplete}
+          />
+          
+          <LoginAlert />
+        </>
+      )}
       
       {notification && (
         <Notification

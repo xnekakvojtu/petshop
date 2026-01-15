@@ -1,4 +1,4 @@
-// src/context/AuthContext.tsx - CORRIGIDO
+// src/context/AuthContext.tsx - VERSÃO COMPLETA COM ADMIN
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 
@@ -12,6 +12,7 @@ interface AuthContextType {
   deductCredits: (amount: number) => boolean;
   isLoggedIn: boolean;
   isGuest: boolean;
+  isAdmin: boolean; // ⭐ NOVO
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,19 +31,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const savedCredits = localStorage.getItem('userCredits');
     
     if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      
-      // Se não tem créditos, dá 200 créditos iniciais
-      const userCredits = parsedUser.credits || (savedCredits ? parseInt(savedCredits) : 200);
-      setCredits(userCredits);
-      
-      // Atualiza localStorage com créditos
-      if (!parsedUser.credits) {
-        parsedUser.credits = userCredits;
-        localStorage.setItem('user', JSON.stringify(parsedUser));
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        
+        // Se não tem créditos, dá 200 créditos iniciais
+        const userCredits = parsedUser.credits || (savedCredits ? parseInt(savedCredits) : 200);
+        setCredits(userCredits);
+        
+        // Atualiza localStorage com créditos
+        if (!parsedUser.credits) {
+          parsedUser.credits = userCredits;
+          localStorage.setItem('user', JSON.stringify(parsedUser));
+        }
+        localStorage.setItem('userCredits', userCredits.toString());
+      } catch (error) {
+        console.error('Erro ao carregar usuário:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('userCredits');
+        setUser(null);
+        setCredits(0);
       }
-      localStorage.setItem('userCredits', userCredits.toString());
     } else {
       // Verifica se é convidado
       const isGuest = localStorage.getItem('isGuest');
@@ -53,7 +62,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: 'convidado@luckpet.com',
           credits: 100,
           isGuest: true,
-          avatar: 'cachorro'
+          avatar: 'cachorro',
+          role: 'user'
         };
         setUser(guestUser);
         setCredits(100);
@@ -68,7 +78,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const updatedCredits = localStorage.getItem('userCredits');
       
       if (updatedUser) {
-        setUser(JSON.parse(updatedUser));
+        try {
+          setUser(JSON.parse(updatedUser));
+        } catch (error) {
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
@@ -83,16 +97,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (userData: User) => {
-    // Garantir que o usuário tenha pelo menos 200 créditos
-    const userWithCredits = {
+    // Garantir que o usuário tenha role
+    const userWithRole = {
       ...userData,
-      credits: userData.credits || 200
+      credits: userData.credits || 200,
+      role: userData.role || 'user' // ⭐ Garantir role
     };
     
-    localStorage.setItem('user', JSON.stringify(userWithCredits));
-    localStorage.setItem('userCredits', userWithCredits.credits.toString());
-    setUser(userWithCredits);
-    setCredits(userWithCredits.credits);
+    localStorage.setItem('user', JSON.stringify(userWithRole));
+    localStorage.setItem('userCredits', userWithRole.credits.toString());
+    setUser(userWithRole);
+    setCredits(userWithRole.credits);
   };
 
   const logout = () => {
@@ -153,6 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     deductCredits,
     isLoggedIn: !!user,
     isGuest: !!user?.isGuest,
+    isAdmin: user?.role === 'admin', // ⭐ CALCULA isAdmin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

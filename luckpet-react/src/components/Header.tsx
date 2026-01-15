@@ -1,6 +1,6 @@
-// src/components/Header.tsx - VERSÃO COM LOGOUT FUNCIONANDO
+// src/components/Header.tsx - AVATAR CORRIGIDO E BONITO
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import { getWishlist } from '../utils/storage';
 import { User } from '../types';
@@ -18,23 +18,22 @@ const Header: React.FC<HeaderProps> = ({
   user: propUser 
 }) => {
   const navigate = useNavigate();
-  const { user: authUser, logout: authLogout, isLoggedIn } = useAuth(); // ADICIONE isLoggedIn aqui
+  const location = useLocation();
+  const { user: authUser, logout: authLogout, isLoggedIn, isAdmin } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // SEM estado local para user - usa diretamente do auth
   const user = propUser || authUser;
+  const isInAdminArea = location.pathname.startsWith('/admin');
 
   useEffect(() => {
-    // Carregar contagem de favoritos
     const wishlist = getWishlist();
     setWishlistCount(wishlist.length);
 
     const handleStorageChange = () => {
-      // Atualizar contagem de favoritos
       const updatedWishlist = getWishlist();
       setWishlistCount(updatedWishlist.length);
     };
@@ -53,9 +52,7 @@ const Header: React.FC<HeaderProps> = ({
     };
 
     const handleUserLoggedOut = () => {
-      console.log('📢 Evento userLoggedOut recebido - fechando menu e recarregando');
       setShowUserMenu(false);
-      // Força atualização fechando o menu
       setTimeout(() => {
         window.location.reload();
       }, 100);
@@ -63,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('resize', handleResize);
-    window.addEventListener('userLoggedOut', handleUserLoggedOut); // OUVE O EVENTO DE LOGOUT
+    window.addEventListener('userLoggedOut', handleUserLoggedOut);
     document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
@@ -82,15 +79,14 @@ const Header: React.FC<HeaderProps> = ({
     }
   }, [showUserMenu]);
 
-  const handleLogout = async () => { // TORNE ASSÍNCRONA
+  const handleLogout = async () => {
     if (window.confirm('Tem certeza que deseja sair?')) {
       try {
-        setShowUserMenu(false); // Fecha o menu imediatamente
-        await authLogout(); // Aguarda o logout
-        // O logout já recarrega a página automaticamente
+        setShowUserMenu(false);
+        await authLogout();
       } catch (error) {
         console.error('Erro no logout:', error);
-        window.location.reload(); // Força recarga se der erro
+        window.location.reload();
       }
     }
   };
@@ -104,12 +100,18 @@ const Header: React.FC<HeaderProps> = ({
     setShowUserMenu(false);
   };
 
+  const handleAdminPanel = () => {
+    navigate('/admin');
+    setShowUserMenu(false);
+  };
+
   const getAvatarImage = (avatarName: string) => {
     const avatars: Record<string, string> = {
       'cachorro': '/img/avatares/cachorro.jpg',
       'gato': '/img/avatares/gato.jpg',
       'coelho': '/img/avatares/coelho.jpg',
-      'passaro': '/img/avatares/passaro.jpg'
+      'passaro': '/img/avatares/passaro.jpg',
+      'admin': '/img/avatares/cachorro.jpg' // Usa a mesma imagem
     };
     return avatars[avatarName] || avatars['cachorro'];
   };
@@ -126,52 +128,86 @@ const Header: React.FC<HeaderProps> = ({
     return savedCredits ? parseInt(savedCredits) : 0;
   };
 
-  // Use isLoggedIn do useAuth para controle mais preciso
-  const isUserLoggedIn = isLoggedIn;
+  const renderUserAvatar = () => {
+    // ⭐ MUDANÇA: Se for admin, usa classe diferente
+    const avatarClass = isAdmin ? 'admin-avatar' : 'user-avatar';
+    
+    return (
+      <div className="user-avatar-container">
+        <div className="avatar-wrapper">
+          <img 
+            src={getAvatarImage(user?.avatar || 'cachorro')} 
+            alt={user?.name || 'Usuário'}
+            className={avatarClass} // ⭐ Usa classe condicional
+            onError={(e) => {
+              e.currentTarget.src = '/img/avatares/cachorro.jpg';
+            }}
+          />
+          {isAdmin && (
+            <div className="admin-badge-small">
+              <i className="fas fa-crown"></i>
+            </div>
+          )}
+          {wishlistCount > 0 && !isAdmin && (
+            <span className="wishlist-indicator">{wishlistCount}</span>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
-      {/* Promo Bar */}
-      <div className="promo-bar">
-        <p>
-          <strong>🚚 Entrega em até 1 hora</strong> 
-        </p>
-      </div>
+      {/* Promo Bar - não mostrar na área admin */}
+      {!isInAdminArea && (
+        <div className="promo-bar">
+          <p>
+            <strong>🚚 Entrega em até 1 hora</strong> 
+          </p>
+        </div>
+      )}
 
       <header className="header">
         <div className="header-container">
           
           {/* Logo */}
           <div className="header-left">
-            <Link to="/" className="logo">
+            <Link to={isInAdminArea ? "/admin" : "/"} className="logo">
               <i className="fas fa-paw"></i>
-              <span>LuckPet</span>
+              <span>{isInAdminArea ? 'LuckPet Admin' : 'LuckPet'}</span>
+              {isInAdminArea && (
+                <span className="admin-badge-header">
+                  <i className="fas fa-crown"></i> Admin
+                </span>
+              )}
             </Link>
           </div>
 
-          {/* Search - Desktop e Mobile quando ativado */}
-          <div className={`header-search ${showSearchMobile ? 'mobile-active' : ''}`}>
-            {(!isMobile || showSearchMobile) && (
-              <>
-                <SearchBar onClose={() => setShowSearchMobile(false)} isMobile={isMobile} />
-                {isMobile && (
-                  <button 
-                    className="close-search"
-                    onClick={() => setShowSearchMobile(false)}
-                    aria-label="Fechar busca"
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+          {/* Search - não mostrar na área admin */}
+          {!isInAdminArea && (
+            <div className={`header-search ${showSearchMobile ? 'mobile-active' : ''}`}>
+              {(!isMobile || showSearchMobile) && (
+                <>
+                  <SearchBar onClose={() => setShowSearchMobile(false)} isMobile={isMobile} />
+                  {isMobile && (
+                    <button 
+                      className="close-search"
+                      onClick={() => setShowSearchMobile(false)}
+                      aria-label="Fechar busca"
+                    >
+                      <i className="fas fa-times"></i>
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="header-actions">
             
-            {/* Search Toggle no Mobile */}
-            {isMobile && !showSearchMobile && (
+            {/* Search Toggle no Mobile - apenas fora do admin */}
+            {isMobile && !showSearchMobile && !isInAdminArea && (
               <button 
                 className="action-btn search-toggle"
                 onClick={() => setShowSearchMobile(true)}
@@ -181,22 +217,24 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Carrinho */}
-            <button 
-              className="action-btn cart-btn" 
-              onClick={onCartClick}
-              aria-label={`Carrinho (${cartCount} itens)`}
-            >
-              <div className="btn-icon">
-                <i className="fas fa-shopping-cart"></i>
-                {cartCount > 0 && <span className="badge">{cartCount}</span>}
-              </div>
-              {!isMobile && <span className="btn-text">Carrinho</span>}
-            </button>
+            {/* Carrinho - não mostrar na área admin */}
+            {!isInAdminArea && (
+              <button 
+                className="action-btn cart-btn" 
+                onClick={onCartClick}
+                aria-label={`Carrinho (${cartCount} itens)`}
+              >
+                <div className="btn-icon">
+                  <i className="fas fa-shopping-cart"></i>
+                  {cartCount > 0 && <span className="badge">{cartCount}</span>}
+                </div>
+                {!isMobile && <span className="btn-text">Carrinho</span>}
+              </button>
+            )}
 
             {/* Usuário */}
             <div className="user-dropdown-container" ref={userMenuRef}>
-              {isUserLoggedIn && user ? ( // ALTERADO: Usa isUserLoggedIn
+              {isLoggedIn && user ? (
                 <>
                   <button 
                     className="user-btn"
@@ -204,21 +242,12 @@ const Header: React.FC<HeaderProps> = ({
                     aria-label="Menu do usuário"
                     aria-expanded={showUserMenu}
                   >
-                    <div className="user-avatar-container">
-                      <img 
-                        src={getAvatarImage(user.avatar)} 
-                        alt={user.name}
-                        className="user-avatar"
-                        onError={(e) => {
-                          e.currentTarget.src = '/img/avatares/cachorro.jpg';
-                        }}
-                      />
-                      {wishlistCount > 0 && (
-                        <span className="wishlist-indicator">{wishlistCount}</span>
-                      )}
-                    </div>
+                    {renderUserAvatar()}
                     {!isMobile && (
-                      <span className="user-name">{user.name.split(' ')[0]}</span>
+                      <span className="user-name">
+                        {user.name.split(' ')[0]}
+                        {isAdmin && <i className="fas fa-crown admin-icon"></i>}
+                      </span>
                     )}
                     <i className={`fas fa-chevron-down dropdown-arrow ${showUserMenu ? 'rotate' : ''}`}></i>
                   </button>
@@ -235,20 +264,27 @@ const Header: React.FC<HeaderProps> = ({
                     <div className={`dropdown-menu ${isMobile ? 'mobile-dropdown' : ''}`}>
                       <div className="dropdown-header">
                         <div className="dropdown-avatar-container">
-                          <img 
-                            src={getAvatarImage(user.avatar)} 
-                            alt={user.name}
-                            className="dropdown-avatar"
-                          />
-                          {wishlistCount > 0 && (
-                            <span className="dropdown-wishlist-count">{wishlistCount}</span>
-                          )}
+                          <div className="avatar-dropdown-wrapper">
+                            <img 
+                              src={getAvatarImage(user?.avatar || 'cachorro')} 
+                              alt={user?.name || 'Usuário'}
+                              className={isAdmin ? 'dropdown-avatar admin-dropdown-avatar' : 'dropdown-avatar'}
+                              onError={(e) => {
+                                e.currentTarget.src = '/img/avatares/cachorro.jpg';
+                              }}
+                            />
+                            {isAdmin && (
+                              <div className="admin-badge-dropdown">
+                                <i className="fas fa-crown"></i>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="dropdown-user-info">
                           <h3 className="dropdown-name">{user.name}</h3>
                           <div className="dropdown-level">
-                            <span className="level-badge">
-                              {user.isGuest ? 'Usuário Convidado' : 'Cliente Premium'}
+                            <span className={`level-badge ${isAdmin ? 'admin-level' : ''}`}>
+                              {isAdmin ? 'Administrador' : (user.isGuest ? 'Convidado' : 'Cliente')}
                             </span>
                           </div>
                           <div className="dropdown-credits">
@@ -261,14 +297,34 @@ const Header: React.FC<HeaderProps> = ({
                       <div className="dropdown-divider"></div>
                       
                       <div className="dropdown-items">
-                        <Link 
-                          to="/perfil" 
-                          className="dropdown-item"
-                          onClick={() => setShowUserMenu(false)}
-                        >
+                        {/* Link para Painel Admin se for admin */}
+                        {isAdmin && !isInAdminArea && (
+                          <button 
+                            className="dropdown-item admin-item"
+                            onClick={handleAdminPanel}
+                          >
+                            <i className="fas fa-crown"></i> 
+                            <span>Painel Admin</span>
+                          </button>
+                        )}
+
+                        {/* Link para voltar ao Site se estiver no admin */}
+                        {isAdmin && isInAdminArea && (
+                          <Link 
+                            to="/" 
+                            className="dropdown-item site-item"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <i className="fas fa-home"></i> 
+                            <span>Voltar ao Site</span>
+                          </Link>
+                        )}
+
+                        {/* Links inativos (sem página) */}
+                        <div className="dropdown-item disabled" title="Em breve">
                           <i className="fas fa-user"></i> 
                           <span>Meu Perfil</span>
-                        </Link>
+                        </div>
                         
                         <button 
                           className="dropdown-item"
@@ -276,38 +332,35 @@ const Header: React.FC<HeaderProps> = ({
                         >
                           <i className="fas fa-calendar-alt"></i> 
                           <span>Meus Agendamentos</span>
-                          <span className="dropdown-badge">Novo</span>
                         </button>
                         
-                        {/* Botão de Favoritos no Menu */}
-                        <button 
-                          className="dropdown-item wishlist-item"
-                          onClick={navigateToWishlist}
-                        >
-                          <i className="fas fa-heart"></i> 
-                          <span>Meus Favoritos</span>
-                          {wishlistCount > 0 && (
-                            <span className="dropdown-badge">{wishlistCount}</span>
-                          )}
-                        </button>
-                        
-                        <Link 
-                          to="/pedidos" 
-                          className="dropdown-item"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          <i className="fas fa-box"></i> 
-                          <span>Meus Pedidos</span>
-                        </Link>
-                        
-                        <Link 
-                          to="/configuracoes" 
-                          className="dropdown-item"
-                          onClick={() => setShowUserMenu(false)}
-                        >
+                        {/* Favoritos apenas para usuários normais */}
+                        {!isAdmin && (
+                          <button 
+                            className="dropdown-item wishlist-item"
+                            onClick={navigateToWishlist}
+                          >
+                            <i className="fas fa-heart"></i> 
+                            <span>Meus Favoritos</span>
+                            {wishlistCount > 0 && (
+                              <span className="dropdown-badge">{wishlistCount}</span>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Pedidos apenas para usuários normais */}
+                        {!isAdmin && (
+                          <div className="dropdown-item disabled" title="Em breve">
+                            <i className="fas fa-box"></i> 
+                            <span>Meus Pedidos</span>
+                          </div>
+                        )}
+
+                        {/* Configurações */}
+                        <div className="dropdown-item disabled" title="Em breve">
                           <i className="fas fa-cog"></i> 
                           <span>Configurações</span>
-                        </Link>
+                        </div>
                         
                         <div className="dropdown-divider"></div>
                         
@@ -345,20 +398,221 @@ const Header: React.FC<HeaderProps> = ({
           font-size: 0.875rem;
         }
 
-        .saiba-mais {
-          color: #FBBF24;
-          text-decoration: none;
-          margin-left: 0.5rem;
+        /* Header Admin */
+        .admin-badge-header {
+          margin-left: 10px;
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+          color: #92400e;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
         }
 
-        .saiba-mais:hover {
-          text-decoration: underline;
+        /* Avatar Container - NOVO */
+        .user-avatar-container {
+          position: relative;
+          width: 40px;
+          height: 40px;
         }
 
-        /* Estilos para o header */
+        .avatar-wrapper {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          overflow: hidden;
+        }
+
+        /* Avatar Admin - BORDA AMARELA E BONITO */
+        .admin-avatar {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border: 3px solid #fbbf24 !important; /* ⭐ BORDA AMARELA */
+          border-radius: 50% !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+        }
+
+        .user-btn:hover .admin-avatar {
+          border-color: #f59e0b !important; /* ⭐ COR MAIS ESCURA NO HOVER */
+          transform: scale(1.05);
+          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Avatar normal - BONITO */
+        .user-avatar {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border: 3px solid #E5E7EB !important;
+          border-radius: 50% !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .user-btn:hover .user-avatar {
+          border-color: #8B5CF6 !important;
+          transform: scale(1.05);
+          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Badges Admin */
+        .admin-badge-small {
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+          color: #92400e;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          border: 2px solid white;
+          z-index: 2;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Avatar Dropdown */
+        .dropdown-avatar-container {
+          position: relative;
+          width: 70px;
+          height: 70px;
+          flex-shrink: 0;
+        }
+
+        .avatar-dropdown-wrapper {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          overflow: hidden;
+        }
+
+        .dropdown-avatar {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border: 4px solid white;
+          border-radius: 50% !important;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          transition: all 0.3s ease;
+        }
+
+        .admin-dropdown-avatar {
+          border: 4px solid #fbbf24 !important;
+          box-shadow: 0 8px 25px rgba(251, 191, 36, 0.25);
+        }
+
+        .admin-badge-dropdown {
+          position: absolute;
+          bottom: -5px;
+          right: -5px;
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+          color: #92400e;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          border: 3px solid white;
+          z-index: 2;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .admin-icon {
+          margin-left: 5px;
+          color: #fbbf24;
+          font-size: 14px;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Menu Dropdown Admin */
+        .admin-level {
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+          color: #92400e;
+          box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+        }
+
+        .admin-item {
+          color: #92400e !important;
+          background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+        }
+
+        .admin-item:hover {
+          background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%) !important;
+          color: #92400e !important;
+          transform: translateX(5px);
+        }
+
+        .admin-item i {
+          color: #f59e0b !important;
+        }
+
+        .site-item {
+          color: #8b5cf6 !important;
+          background: rgba(139, 92, 246, 0.1);
+        }
+
+        .site-item:hover {
+          background: rgba(139, 92, 246, 0.2) !important;
+          color: #7c3aed !important;
+          transform: translateX(5px);
+        }
+
+        .site-item i {
+          color: #8b5cf6 !important;
+        }
+
+        /* Wishlist Indicator */
+        .wishlist-indicator {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+          color: white;
+          font-size: 10px;
+          font-weight: 700;
+          min-width: 18px;
+          height: 18px;
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid white;
+          z-index: 2;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Itens desabilitados */
+        .dropdown-item.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          position: relative;
+        }
+
+        .dropdown-item.disabled:hover {
+          background: none !important;
+          color: #4B5563 !important;
+          transform: none;
+        }
+
+        .dropdown-item.disabled:hover i {
+          color: #9CA3AF !important;
+        }
+
+        /* Estilos existentes mantidos */
         .header {
           background: white;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
           position: sticky;
           top: 0;
           z-index: 100;
@@ -374,7 +628,6 @@ const Header: React.FC<HeaderProps> = ({
           gap: 1rem;
         }
 
-        /* Logo */
         .header-left {
           flex-shrink: 0;
         }
@@ -382,23 +635,24 @@ const Header: React.FC<HeaderProps> = ({
         .logo {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
           text-decoration: none;
           color: #1F2937;
-          font-weight: 700;
-          font-size: 1.5rem;
-          transition: color 0.2s;
+          font-weight: 800;
+          font-size: 1.6rem;
+          transition: all 0.3s;
         }
 
         .logo:hover {
           color: #8B5CF6;
+          transform: scale(1.02);
         }
 
         .logo i {
           color: #8B5CF6;
+          font-size: 1.8rem;
         }
 
-        /* Search */
         .header-search {
           flex: 1;
           max-width: 600px;
@@ -418,11 +672,10 @@ const Header: React.FC<HeaderProps> = ({
           z-index: 10;
         }
 
-        /* Actions */
         .header-actions {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 1rem;
           flex-shrink: 0;
         }
 
@@ -432,21 +685,21 @@ const Header: React.FC<HeaderProps> = ({
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.5rem;
+          padding: 0.75rem;
           color: #4B5563;
           cursor: pointer;
           text-decoration: none;
-          border-radius: 0.5rem;
-          transition: all 0.2s;
+          border-radius: 12px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
         }
 
         .action-btn:hover {
           background: #F3F4F6;
           color: #8B5CF6;
+          transform: translateY(-2px);
         }
 
-        /* CARRINHO - ESTILOS ESPECÍFICOS */
         .cart-btn {
           position: relative;
         }
@@ -459,9 +712,9 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         .cart-btn i {
-          font-size: 1.2rem;
+          font-size: 1.4rem;
           color: #4B5563;
-          transition: color 0.2s;
+          transition: color 0.3s;
         }
 
         .cart-btn:hover i {
@@ -472,25 +725,26 @@ const Header: React.FC<HeaderProps> = ({
           position: absolute;
           top: -8px;
           right: -8px;
-          background: #EF4444;
+          background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
           color: white;
-          font-size: 0.7rem;
-          font-weight: 600;
-          min-width: 18px;
-          height: 18px;
-          border-radius: 9px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          min-width: 20px;
+          height: 20px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           border: 2px solid white;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .btn-text {
-          font-size: 0.875rem;
-          font-weight: 500;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #374151;
         }
 
-        /* User Dropdown */
         .user-dropdown-container {
           position: relative;
         }
@@ -498,65 +752,33 @@ const Header: React.FC<HeaderProps> = ({
         .user-btn {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
           background: none;
           border: none;
-          padding: 0.25rem;
+          padding: 0.5rem 0.75rem;
           cursor: pointer;
-          border-radius: 2rem;
-          transition: all 0.2s;
+          border-radius: 50px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .user-btn:hover {
           background: #F3F4F6;
-        }
-
-        .user-avatar-container {
-          position: relative;
-          width: 36px;
-          height: 36px;
-        }
-
-        .user-avatar {
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #E5E7EB;
-          transition: border-color 0.2s;
-        }
-
-        .user-btn:hover .user-avatar {
-          border-color: #8B5CF6;
-        }
-
-        .wishlist-indicator {
-          position: absolute;
-          top: -4px;
-          right: -4px;
-          background: #EF4444;
-          color: white;
-          font-size: 0.6rem;
-          font-weight: 700;
-          min-width: 16px;
-          height: 16px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 2px solid white;
+          transform: translateY(-2px);
         }
 
         .user-name {
-          font-size: 0.875rem;
-          font-weight: 500;
+          font-size: 0.95rem;
+          font-weight: 600;
           color: #1F2937;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .dropdown-arrow {
-          font-size: 0.75rem;
+          font-size: 0.85rem;
           color: #6B7280;
-          transition: transform 0.2s;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .dropdown-arrow.rotate {
@@ -570,72 +792,41 @@ const Header: React.FC<HeaderProps> = ({
           right: 0;
           bottom: 0;
           background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
           z-index: 99;
         }
 
         .dropdown-menu {
           position: absolute;
           right: 0;
-          top: calc(100% + 0.5rem);
+          top: calc(100% + 0.75rem);
           background: white;
-          border-radius: 0.75rem;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-          min-width: 300px;
+          border-radius: 16px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+          min-width: 320px;
           z-index: 100;
-          animation: slideDown 0.2s ease-out;
+          animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;
+          border: 1px solid #E5E7EB;
         }
 
         @keyframes slideDown {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(-15px) scale(0.95);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
 
         .dropdown-header {
-          padding: 1.25rem;
-          background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+          padding: 1.5rem;
+          background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
           display: flex;
           align-items: center;
-          gap: 1rem;
-        }
-
-        .dropdown-avatar-container {
-          position: relative;
-          width: 60px;
-          height: 60px;
-          flex-shrink: 0;
-        }
-
-        .dropdown-avatar {
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 3px solid white;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .dropdown-wishlist-count {
-          position: absolute;
-          top: -4px;
-          right: -4px;
-          background: #EF4444;
-          color: white;
-          font-size: 0.7rem;
-          font-weight: 700;
-          min-width: 20px;
-          height: 20px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 2px solid white;
+          gap: 1.25rem;
         }
 
         .dropdown-user-info {
@@ -644,43 +835,50 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         .dropdown-name {
-          font-size: 1rem;
-          font-weight: 600;
+          font-size: 1.1rem;
+          font-weight: 700;
           color: #1F2937;
-          margin-bottom: 0.25rem;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          margin-bottom: 0.5rem;
+          line-height: 1.2;
         }
 
         .level-badge {
           display: inline-block;
           background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
           color: white;
-          font-size: 0.75rem;
-          font-weight: 600;
-          padding: 0.25rem 0.75rem;
-          border-radius: 1rem;
+          font-size: 0.8rem;
+          font-weight: 700;
+          padding: 0.35rem 1rem;
+          border-radius: 20px;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
         }
 
         .dropdown-credits {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
           color: #8B5CF6;
-          font-weight: 600;
-          font-size: 0.875rem;
-          margin-top: 0.5rem;
+          font-weight: 700;
+          font-size: 0.95rem;
+          margin-top: 0.75rem;
+          background: white;
+          padding: 0.5rem 0.75rem;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+        }
+
+        .dropdown-credits i {
+          color: #fbbf24;
         }
 
         .dropdown-divider {
           height: 1px;
-          background: #E5E7EB;
+          background: linear-gradient(90deg, transparent, #E5E7EB, transparent);
           margin: 0.5rem 0;
         }
 
         .dropdown-items {
-          padding: 0.5rem;
+          padding: 0.75rem;
         }
 
         .dropdown-item {
@@ -688,27 +886,35 @@ const Header: React.FC<HeaderProps> = ({
           align-items: center;
           gap: 0.75rem;
           width: 100%;
-          padding: 0.75rem 1rem;
+          padding: 0.85rem 1rem;
           background: none;
           border: none;
           color: #4B5563;
           text-decoration: none;
-          font-size: 0.875rem;
-          border-radius: 0.5rem;
+          font-size: 0.95rem;
+          font-weight: 500;
+          border-radius: 12px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
         }
 
         .dropdown-item:hover {
           background: #F3F4F6;
           color: #8B5CF6;
+          transform: translateX(5px);
         }
 
         .dropdown-item i {
           width: 20px;
           text-align: center;
           color: #9CA3AF;
+          font-size: 1rem;
+          transition: color 0.3s;
+        }
+
+        .dropdown-item:hover i {
+          color: #8B5CF6;
         }
 
         .dropdown-item.wishlist-item {
@@ -718,6 +924,7 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-item.wishlist-item:hover {
           background: #FEE2E2;
           color: #DC2626;
+          transform: translateX(5px);
         }
 
         .dropdown-item.wishlist-item i {
@@ -727,15 +934,16 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-badge {
           position: absolute;
           right: 1rem;
-          background: #10B981;
+          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
           color: white;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           font-weight: 700;
-          padding: 2px 8px;
-          border-radius: 10px;
+          padding: 3px 10px;
+          border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
 
         .dropdown-item.logout {
@@ -745,13 +953,13 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-item.logout:hover {
           background: #FEE2E2;
           color: #DC2626;
+          transform: translateX(5px);
         }
 
         .dropdown-item.logout i {
           color: #EF4444;
         }
 
-        /* Mobile */
         .search-toggle {
           display: none;
         }
@@ -795,7 +1003,6 @@ const Header: React.FC<HeaderProps> = ({
             display: none;
           }
 
-          /* Carrinho mobile */
           .cart-btn i {
             font-size: 1.4rem;
           }
@@ -803,9 +1010,9 @@ const Header: React.FC<HeaderProps> = ({
           .cart-btn .badge {
             top: -6px;
             right: -6px;
-            font-size: 0.65rem;
-            min-width: 16px;
-            height: 16px;
+            font-size: 0.7rem;
+            min-width: 18px;
+            height: 18px;
           }
 
           .dropdown-menu.mobile-dropdown {
@@ -816,8 +1023,8 @@ const Header: React.FC<HeaderProps> = ({
             right: 0;
             width: 100%;
             max-width: 100%;
-            border-radius: 1rem 1rem 0 0;
-            animation: slideUp 0.3s ease-out;
+            border-radius: 20px 20px 0 0;
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           }
 
           @keyframes slideUp {
@@ -833,6 +1040,21 @@ const Header: React.FC<HeaderProps> = ({
             min-width: auto;
             width: 100%;
           }
+
+          .admin-badge-header {
+            display: none;
+          }
+
+          .user-avatar-container {
+            width: 36px;
+            height: 36px;
+          }
+
+          .admin-badge-small {
+            width: 18px;
+            height: 18px;
+            font-size: 9px;
+          }
         }
 
         @media (max-width: 480px) {
@@ -847,11 +1069,20 @@ const Header: React.FC<HeaderProps> = ({
           }
 
           .logo {
-            font-size: 1.25rem;
+            font-size: 1.3rem;
+          }
+
+          .logo i {
+            font-size: 1.5rem;
           }
 
           .cart-btn {
-            padding: 0.375rem;
+            padding: 0.5rem;
+          }
+
+          .user-avatar-container {
+            width: 34px;
+            height: 34px;
           }
         }
       `}</style>
