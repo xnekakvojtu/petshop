@@ -8,7 +8,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom']
-          // REMOVE completamente a linha do '@fortawesome/fontawesome-free'
         }
       }
     },
@@ -24,5 +23,7 @@ export default defineConfig({
     hmr: {
       overlay: false
     }
-  }
+  },
+ 
+  base: './',
 })
