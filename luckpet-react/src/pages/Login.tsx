@@ -184,9 +184,9 @@ const Login: React.FC = () => {
     
     setSuccess('Entrando como Administrador...');
     setTimeout(() => {
-      navigate('/admin');
-      window.location.reload();
-    }, 1000);
+  navigate('/#/admin'); // ⬅️ MUDE PARA "/#/admin"
+  window.location.reload();
+}, 1000);
   };
 
   return (
