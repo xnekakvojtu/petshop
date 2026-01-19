@@ -1,4 +1,4 @@
-// src/components/BookingModal.tsx - VERSÃO VISUAL MELHORADA
+// src/components/BookingModal.tsx - ATUALIZADO COM TELEFONE
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { services } from '../data/products';
@@ -71,6 +71,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
     petType: 'cachorro',
     petBreed: '',
     petAge: '',
+    customerPhone: '', // ⭐⭐ NOVO CAMPO - TELEFONE ⭐⭐
     serviceId: serviceType,
     selectedDate: '',
     selectedTime: '',
@@ -227,6 +228,9 @@ const BookingModal: React.FC<BookingModalProps> = ({
         duration: service.duration,
         professional: formData.selectedProfessional || 'Profissional',
         paymentMethod: formData.paymentMethod,
+        customerName: user.name, // ⭐⭐ Nome do usuário
+        customerPhone: formData.customerPhone, // ⭐⭐ Telefone
+        customerEmail: user.email, // ⭐⭐ Email
       };
 
       console.log('📤 Criando agendamento com:', bookingData);
@@ -290,6 +294,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
       petType: 'cachorro',
       petBreed: '',
       petAge: '',
+      customerPhone: '', // ⭐⭐ Resetar telefone
       serviceId: serviceType,
       selectedDate: '',
       selectedTime: '',
@@ -423,6 +428,23 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 />
               </div>
 
+              {/* ⭐⭐ NOVO: CAMPO DE TELEFONE ⭐⭐ */}
+              <div className="form-group">
+                <label className="form-label">Telefone para Contato (opcional)</label>
+                <input
+                  type="tel"
+                  name="customerPhone"
+                  value={formData.customerPhone}
+                  onChange={handleInputChange}
+                  placeholder="(11) 99999-9999"
+                  className="form-input"
+                  disabled={loading}
+                />
+                <small className="form-hint">
+                  Usaremos apenas para confirmar o agendamento
+                </small>
+              </div>
+
               <div className="service-summary-card">
                 <div className="summary-icon">
                   <i className={`fas ${
@@ -521,7 +543,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 <p className="step-description">Escolha como deseja pagar</p>
               </div>
               
-              {/* Se PIX está sendo mostrado */}
               {showPix && pixData ? (
                 <div className="pix-container">
                   <div className="pix-header">
@@ -800,6 +821,12 @@ const BookingModal: React.FC<BookingModalProps> = ({
                       <strong>{formData.petBreed}</strong>
                     </div>
                   )}
+                  {formData.customerPhone && ( // ⭐⭐ MOSTRAR TELEFONE SE PREENCHIDO ⭐⭐
+                    <div className="detail-row">
+                      <span>Telefone:</span>
+                      <strong>{formData.customerPhone}</strong>
+                    </div>
+                  )}
                 </div>
 
                 <div className="confirmation-section">
@@ -912,6 +939,14 @@ const BookingModal: React.FC<BookingModalProps> = ({
         </div>
 
         <style>{`
+          /* ⭐⭐ NOVO ESTILO PARA HINT DO TELEFONE ⭐⭐ */
+          .form-hint {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #6B7280;
+          }
+
           .booking-modal-overlay {
             position: fixed;
             top: 0;
@@ -1146,6 +1181,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
             display: flex;
             gap: 20px;
             align-items: flex-start;
+            margin-top: 16px;
           }
 
           .summary-icon {

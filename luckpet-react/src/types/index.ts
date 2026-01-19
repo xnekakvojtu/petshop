@@ -1,6 +1,4 @@
-// src/types/index.ts - ATUALIZADO COM PAGAMENTOS E ADMIN
-
-// Produtos
+// src/types/index.ts - COMPLETO
 export interface Product {
   id: string;
   name: string;
@@ -10,7 +8,6 @@ export interface Product {
   description?: string;
 }
 
-// Serviços (mantido para compatibilidade)
 export interface Service {
   id: string;
   title: string;
@@ -21,7 +18,6 @@ export interface Service {
   description: string;
 }
 
-// Tipos para Admin - Serviços (novo)
 export interface ServiceType {
   id: string;
   name: string;
@@ -32,7 +28,6 @@ export interface ServiceType {
   category?: string;
 }
 
-// Planos
 export interface Plan {
   id: string;
   title: string;
@@ -42,7 +37,6 @@ export interface Plan {
   popular?: boolean;
 }
 
-// Carrinho
 export interface CartItem {
   productId: string;
   name: string;
@@ -51,7 +45,6 @@ export interface CartItem {
   image: string;
 }
 
-// USUÁRIO - ATUALIZADO COM ROLE
 export interface User {
   id: string;
   name: string;
@@ -63,13 +56,12 @@ export interface User {
   createdAt?: string;
   emailVerified?: boolean;
   phone?: string;
-  role?: 'user' | 'admin'; // ⭐ NOVO CAMPO IMPORTANTE ⭐
+  role?: 'user' | 'admin';
 }
 
-// Tipos para Admin
 export type UserRole = 'user' | 'admin';
 
-// Tipos para Agendamento - ATUALIZADO
+// ⭐⭐ ATUALIZADO COM TELEFONE ⭐⭐
 export interface Booking {
   id: string;
   userId: string;
@@ -90,24 +82,23 @@ export interface Booking {
   duration: number;
   paymentMethod?: PaymentMethod;
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
-  cancellationReason?: string; // ⭐ NOVO - motivo do cancelamento
-  customerName?: string; // ⭐ NOVO - nome do cliente
+  cancellationReason?: string;
+  customerName?: string;
+  customerPhone?: string; // ⭐⭐ TELEFONE ADICIONADO ⭐⭐
+  customerEmail?: string;
 }
 
-// Slots de tempo
 export interface TimeSlot {
   time: string;
   available: boolean;
   professional?: string;
 }
 
-// Datas disponíveis
 export interface AvailableDate {
   date: string;
   slots: TimeSlot[];
 }
 
-// Profissionais
 export interface Professional {
   id: string;
   name: string;
@@ -117,7 +108,6 @@ export interface Professional {
   availableSlots: string[];
 }
 
-// Novos tipos para pagamento
 export type PaymentMethod = 'luckcoins' | 'pix' | 'credit_card' | 'debit_card' | 'money';
 
 export interface PixPayment {
@@ -135,7 +125,6 @@ export interface PaymentOption {
   available: boolean;
 }
 
-// TIPOS PARA ADMIN - NOVOS
 export interface AdminStats {
   totalBookings: number;
   pendingBookings: number;
@@ -154,5 +143,5 @@ export interface ScheduleConfig {
   slotDuration: number;
   maxSlotsPerTime: number;
   blockedDates: string[];
-  workingDays: number[]; // 0 = domingo, 1 = segunda...
+  workingDays: number[];
 }

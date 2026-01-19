@@ -1,4 +1,4 @@
-// src/firebase/bookings.ts - VERSÃO LIMPA E FUNCIONAL
+// src/firebase/bookings.ts - VERSÃO ATUALIZADA COM CAMPOS DO CLIENTE
 import { 
   collection, 
   doc, 
@@ -35,6 +35,11 @@ interface FirestoreBooking {
   professional?: string;
   paymentMethod?: PaymentMethod;
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  // ⭐⭐ NOVOS CAMPOS ⭐⭐
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  // ⭐⭐ FIM DOS NOVOS CAMPOS ⭐⭐
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -43,6 +48,10 @@ interface FirestoreBooking {
 export const createBooking = async (
   bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> & {
     paymentMethod?: PaymentMethod;
+    // ⭐⭐ ADICIONAR CAMPOS DO CLIENTE ⭐⭐
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
   }
 ): Promise<string> => {
   try {
@@ -65,12 +74,22 @@ export const createBooking = async (
       professional: bookingData.professional || 'A definir',
       paymentMethod: bookingData.paymentMethod || 'luckcoins',
       paymentStatus: bookingData.paymentMethod === 'luckcoins' ? 'paid' : 'pending',
+      // ⭐⭐ SALVAR CAMPOS DO CLIENTE ⭐⭐
+      customerName: bookingData.customerName,
+      customerPhone: bookingData.customerPhone,
+      customerEmail: bookingData.customerEmail,
+      // ⭐⭐ FIM DOS CAMPOS DO CLIENTE ⭐⭐
       createdAt: serverTimestamp() as Timestamp,
       updatedAt: serverTimestamp() as Timestamp,
     };
 
     const docRef = await addDoc(bookingsRef, bookingToSave);
     console.log('✅ Agendamento criado com ID:', docRef.id);
+    console.log('📋 Dados salvos:', {
+      customerName: bookingData.customerName,
+      customerPhone: bookingData.customerPhone,
+      customerEmail: bookingData.customerEmail
+    });
     
     return docRef.id;
   } catch (error: any) {
@@ -89,7 +108,6 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
       return [];
     }
     
-    // Tenta com query simples primeiro
     const q = query(
       bookingsRef,
       where('userId', '==', userId),
@@ -124,6 +142,11 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
         professional: data.professional,
         paymentMethod: data.paymentMethod,
         paymentStatus: data.paymentStatus,
+        // ⭐⭐ BUSCAR CAMPOS DO CLIENTE ⭐⭐
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail,
+        // ⭐⭐ FIM DOS CAMPOS DO CLIENTE ⭐⭐
         createdAt,
         updatedAt,
       };
@@ -142,7 +165,6 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
   } catch (error: any) {
     console.error('❌ Erro ao buscar agendamentos:', error);
     
-    // Se for erro de índice, retorna array vazio
     if (error.code === 'failed-precondition') {
       console.log('⚠️  Índice não está pronto. Retornando array vazio.');
       return [];
@@ -228,7 +250,6 @@ export const generatePixPayment = async (
   try {
     console.log('🧾 Gerando PIX para agendamento:', bookingId);
     
-    // Gerar código PIX simulado
     const randomCode = `pix_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     const pixData = {
@@ -244,7 +265,7 @@ export const generatePixPayment = async (
         </svg>
       `)}`,
       code: randomCode,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       amount,
     };
     
@@ -281,7 +302,6 @@ export const checkTimeSlotAvailability = async (
   } catch (error: any) {
     console.error('❌ Erro ao verificar disponibilidade:', error);
     
-    // Se for erro de índice, assume que está disponível
     if (error.code === 'failed-precondition') {
       console.log('⚠️  Usando fallback: assumindo horário disponível');
       return true;
@@ -299,12 +319,10 @@ export const getAvailableDates = async (serviceId: string): Promise<AvailableDat
     const today = new Date();
     const dates: AvailableDate[] = [];
     
-    // Gerar 14 dias a partir de amanhã
     for (let i = 1; i <= 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       
-      // Ignorar fins de semana
       if (date.getDay() === 0 || date.getDay() === 6) continue;
       
       const dateStr = date.toISOString().split('T')[0];
@@ -314,7 +332,6 @@ export const getAvailableDates = async (serviceId: string): Promise<AvailableDat
         month: 'short'
       });
       
-      // Horários padrão
       const slots: TimeSlot[] = [
         { time: '08:00', available: true, professional: 'Dra. Ana Silva' },
         { time: '09:00', available: true, professional: 'Dr. Carlos Santos' },
@@ -361,13 +378,11 @@ export const syncMockBookings = async (userId: string): Promise<void> => {
   try {
     console.log(`🔄 Sincronizando agendamentos mock para: ${userId}`);
     
-    // Verificar se o usuário já tem agendamentos
     const existingBookings = await getUserBookings(userId);
     
     if (existingBookings.length === 0) {
       console.log('📝 Criando agendamentos de exemplo...');
       
-      // Criar alguns agendamentos de exemplo
       const mockBookings = [
         {
           userId,
@@ -378,13 +393,17 @@ export const syncMockBookings = async (userId: string): Promise<void> => {
           serviceId: 'banho',
           serviceName: 'Banho Completo',
           servicePrice: 45.00,
-          date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 dias
+          date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           time: '10:00',
           status: 'confirmed' as const,
           notes: 'Cuidado com as orelhas',
           duration: 60,
           professional: 'Dra. Ana Silva',
           paymentMethod: 'luckcoins' as PaymentMethod,
+          // ⭐⭐ DADOS DO CLIENTE DE EXEMPLO ⭐⭐
+          customerName: 'João Silva',
+          customerPhone: '(11) 99999-9999',
+          customerEmail: 'joao@email.com',
         },
         {
           userId,
@@ -395,13 +414,17 @@ export const syncMockBookings = async (userId: string): Promise<void> => {
           serviceId: 'consulta',
           serviceName: 'Consulta Veterinária',
           servicePrice: 120.00,
-          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 5 dias
+          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           time: '14:00',
           status: 'pending' as const,
           notes: 'Primeira consulta',
           duration: 30,
           professional: 'Dr. Carlos Santos',
           paymentMethod: 'pix' as PaymentMethod,
+          // ⭐⭐ DADOS DO CLIENTE DE EXEMPLO ⭐⭐
+          customerName: 'Maria Santos',
+          customerPhone: '(11) 98888-8888',
+          customerEmail: 'maria@email.com',
         }
       ];
       

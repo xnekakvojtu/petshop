@@ -1,4 +1,4 @@
-// src/firebase/admin.ts - VERSÃO CORRIGIDA
+// src/firebase/admin.ts - VERSÃO COMPLETA ATUALIZADA
 import { 
   collection, 
   doc, 
@@ -14,15 +14,13 @@ import {
   limit,
   setDoc
 } from 'firebase/firestore';
-import { db } from './index'; // ⭐ IMPORTANTE: importar db DEPOIS das funções do firestore
+import { db } from './index';
 import { Booking, ServiceType, AdminStats, User } from '../types';
 
-// ⭐ PRIMEIRO definir as referências usando db que já foi importado
 const bookingsRef = collection(db, 'bookings');
 const servicesRef = collection(db, 'services');
 const usersRef = collection(db, 'users');
 
-// 1️⃣ BUSCAR TODOS OS AGENDAMENTOS (com filtros)
 export const getAllBookings = async (filters?: {
   date?: string;
   status?: string;
@@ -33,7 +31,6 @@ export const getAllBookings = async (filters?: {
     
     let q = query(bookingsRef, orderBy('createdAt', 'desc'));
     
-    // Aplicar filtros
     if (filters?.date) {
       q = query(q, where('date', '==', filters.date));
     }
@@ -71,17 +68,30 @@ export const getAllBookings = async (filters?: {
         paymentMethod: data.paymentMethod,
         paymentStatus: data.paymentStatus || 'pending',
         cancellationReason: data.cancellationReason || '',
-        customerName: data.customerName || '',
+        customerName: data.customerName || data.clientName || '',
+        customerPhone: data.customerPhone || data.phone || data.clientPhone || data.userPhone || '',
+        customerEmail: data.customerEmail || data.email || '',
       });
     });
     
     console.log(`✅ ${bookings.length} agendamentos encontrados`);
+    
+    // DEBUG: Mostrar dados do primeiro agendamento
+    if (bookings.length > 0) {
+      console.log('📱 DEBUG - Primeiro agendamento:', {
+        id: bookings[0].id,
+        nome: bookings[0].customerName,
+        telefone: bookings[0].customerPhone,
+        email: bookings[0].customerEmail,
+        campos: Object.keys(bookings[0])
+      });
+    }
+    
     return bookings;
     
   } catch (error: any) {
     console.error('❌ Erro ao buscar agendamentos:', error);
     
-    // Se for erro de índice, criar índice primeiro
     if (error.code === 'failed-precondition') {
       console.log('⚠️  Índice não configurado. Configure no Firestore Console.');
     }
@@ -90,7 +100,6 @@ export const getAllBookings = async (filters?: {
   }
 };
 
-// 2️⃣ ATUALIZAR STATUS DO AGENDAMENTO
 export const updateBookingStatus = async (
   bookingId: string, 
   status: Booking['status'],
@@ -118,7 +127,6 @@ export const updateBookingStatus = async (
   }
 };
 
-// 3️⃣ BUSCAR TODOS OS SERVIÇOS
 export const getAllServices = async (): Promise<ServiceType[]> => {
   try {
     console.log('🔍 Buscando todos os serviços...');
@@ -135,7 +143,7 @@ export const getAllServices = async (): Promise<ServiceType[]> => {
         description: data.description || '',
         price: data.price || 0,
         duration: data.duration || 30,
-        active: data.active !== false, // default true
+        active: data.active !== false,
         category: data.category || 'geral',
       });
     });
@@ -149,7 +157,6 @@ export const getAllServices = async (): Promise<ServiceType[]> => {
   }
 };
 
-// 4️⃣ CRIAR NOVO SERVIÇO
 export const createService = async (
   serviceData: Omit<ServiceType, 'id'>
 ): Promise<ServiceType> => {
@@ -175,7 +182,6 @@ export const createService = async (
   }
 };
 
-// 5️⃣ ATUALIZAR SERVIÇO
 export const updateService = async (
   serviceId: string,
   updates: Partial<ServiceType>
@@ -197,22 +203,18 @@ export const updateService = async (
   }
 };
 
-// 6️⃣ BUSCAR ESTATÍSTICAS DO ADMIN
 export const getAdminStats = async (): Promise<AdminStats> => {
   try {
     console.log('📊 Calculando estatísticas...');
     
-    // Buscar todos os agendamentos
     const allBookings = await getAllBookings();
     const today = new Date().toISOString().split('T')[0];
     
-    // Calcular totais
     const totalBookings = allBookings.length;
     const pendingBookings = allBookings.filter(b => b.status === 'pending').length;
     const confirmedBookings = allBookings.filter(b => b.status === 'confirmed').length;
     const todayBookings = allBookings.filter(b => b.date === today).length;
     
-    // Calcular faturamento mensal
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       .toISOString().split('T')[0];
@@ -226,7 +228,6 @@ export const getAdminStats = async (): Promise<AdminStats> => {
       0
     );
     
-    // Serviços mais populares
     const serviceCounts: Record<string, number> = {};
     allBookings.forEach(booking => {
       if (booking.serviceName) {
@@ -237,7 +238,7 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     const popularServices = Object.entries(serviceCounts)
       .map(([serviceName, count]) => ({ serviceName, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 5); // Top 5
+      .slice(0, 5);
     
     const stats: AdminStats = {
       totalBookings,
@@ -254,7 +255,6 @@ export const getAdminStats = async (): Promise<AdminStats> => {
   } catch (error) {
     console.error('❌ Erro ao calcular estatísticas:', error);
     
-    // Retornar valores padrão em caso de erro
     return {
       totalBookings: 0,
       pendingBookings: 0,
@@ -266,7 +266,6 @@ export const getAdminStats = async (): Promise<AdminStats> => {
   }
 };
 
-// 7️⃣ BUSCAR TODOS OS USUÁRIOS
 export const getAllUsers = async (): Promise<User[]> => {
   try {
     console.log('🔍 Buscando todos os usuários...');
@@ -302,7 +301,6 @@ export const getAllUsers = async (): Promise<User[]> => {
   }
 };
 
-// 8️⃣ ATUALIZAR PERMISSÃO DO USUÁRIO
 export const updateUserRole = async (
   userId: string, 
   role: 'user' | 'admin'
@@ -321,7 +319,6 @@ export const updateUserRole = async (
   }
 };
 
-// 9️⃣ CRIAR CONFIGURAÇÃO DE HORÁRIOS
 export const getScheduleConfig = async () => {
   try {
     const configDoc = doc(db, 'config', 'schedule');
@@ -331,14 +328,13 @@ export const getScheduleConfig = async () => {
       return snapshot.data();
     }
     
-    // Configuração padrão
     const defaultConfig = {
       openingTime: '08:00',
       closingTime: '18:00',
       slotDuration: 30,
       maxSlotsPerTime: 2,
       blockedDates: [],
-      workingDays: [1, 2, 3, 4, 5], // segunda a sexta
+      workingDays: [1, 2, 3, 4, 5],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -351,7 +347,6 @@ export const getScheduleConfig = async () => {
   }
 };
 
-// Exportação padrão
 export default {
   getAllBookings,
   updateBookingStatus,

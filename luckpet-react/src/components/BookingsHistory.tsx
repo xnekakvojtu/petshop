@@ -1,4 +1,4 @@
-// src/components/BookingsHistory.tsx - VERSÃO COM MAIS FALLBACKS
+// src/components/BookingsHistory.tsx - VERSÃO CORRIGIDA
 import React, { useState, useEffect, useCallback } from 'react';
 import { getUserBookings, cancelBooking, updatePaymentStatus } from '../firebase/bookings';
 import { Booking, PaymentMethod } from '../types';
@@ -503,6 +503,17 @@ const BookingsHistory: React.FC = () => {
                   </span>
                 </div>
 
+                {/* ⭐⭐ ADICIONADO: TELEFONE DO CLIENTE ⭐⭐ */}
+                {booking.customerPhone && (
+                  <div className="detail-row">
+                    <span className="detail-label">Telefone:</span>
+                    <span className="detail-value">
+                      <i className="fas fa-phone"></i>
+                      {booking.customerPhone}
+                    </span>
+                  </div>
+                )}
+
                 <div className="detail-row">
                   <span className="detail-label">Profissional:</span>
                   <span className="detail-value">
@@ -519,6 +530,12 @@ const BookingsHistory: React.FC = () => {
                     {booking.paymentStatus === 'pending' && booking.paymentMethod !== 'luckcoins' && (
                       <span className="payment-pending"> • Aguardando</span>
                     )}
+                    {booking.paymentMethod === 'luckcoins' && (
+                      <span className="luckcoins-badge-small">
+                        <i className="fas fa-coins"></i>
+                        {booking.servicePrice} LC
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -527,13 +544,16 @@ const BookingsHistory: React.FC = () => {
               <div className="card-footer">
                 <div className="price-section">
                   <span className="price-label">Valor:</span>
-                  <span className="price-value">R$ {booking.servicePrice.toFixed(2)}</span>
-                  {booking.paymentMethod === 'luckcoins' && (
-                    <span className="luckcoins-badge">
-                      <i className="fas fa-coins"></i>
-                      {booking.servicePrice} LC
-                    </span>
-                  )}
+                  <span className="price-value">
+                    {booking.paymentMethod === 'luckcoins' ? (
+                      <span className="luckcoins-price">
+                        <i className="fas fa-coins"></i>
+                        {booking.servicePrice} LuckCoins
+                      </span>
+                    ) : (
+                      `R$ ${booking.servicePrice.toFixed(2)}`
+                    )}
+                  </span>
                 </div>
 
                 <div className="actions">
@@ -546,12 +566,27 @@ const BookingsHistory: React.FC = () => {
                     </button>
                   )}
                   
-                  {booking.status === 'pending' && 
+                  {/* ⭐⭐ CORRIGIDO: Botão "Marcar Pago" aparece apenas para admin */}
+                  {user?.role === 'admin' && 
+                   booking.status === 'pending' && 
                    booking.paymentStatus === 'pending' && 
                    booking.paymentMethod !== 'luckcoins' && (
                     <button 
                       className="action-btn pay-btn"
-                      onClick={() => updatePaymentStatus(booking.id, 'paid').then(() => loadBookings())}
+                      onClick={async () => {
+                        try {
+                          await updatePaymentStatus(booking.id, 'paid');
+                          await loadBookings();
+                          window.dispatchEvent(new CustomEvent('notification', {
+                            detail: { 
+                              message: 'Pagamento marcado como pago!', 
+                              type: 'success' 
+                            }
+                          }));
+                        } catch (err) {
+                          console.error('Erro ao marcar como pago:', err);
+                        }
+                      }}
                     >
                       Marcar Pago
                     </button>
@@ -560,14 +595,28 @@ const BookingsHistory: React.FC = () => {
                   <button 
                     className="action-btn details-btn"
                     onClick={() => {
-                      alert(`Detalhes do agendamento:\n\n` +
+                      let details = `Detalhes do agendamento:\n\n` +
                             `Pet: ${booking.petName}\n` +
                             `Serviço: ${service.title}\n` +
                             `Descrição: ${service.description}\n` +
                             `Inclui: ${service.features.join(', ')}\n` +
                             `Data: ${formatDate(booking.date)} às ${booking.time}\n` +
                             `Status: ${statusConfig.text}\n` +
-                            `Pagamento: ${paymentMethod.text}`);
+                            `Pagamento: ${paymentMethod.text}`;
+                      
+                      if (booking.customerPhone) {
+                        details += `\nTelefone: ${booking.customerPhone}`;
+                      }
+                      
+                      if (booking.customerName) {
+                        details += `\nCliente: ${booking.customerName}`;
+                      }
+                      
+                      if (booking.customerEmail) {
+                        details += `\nEmail: ${booking.customerEmail}`;
+                      }
+                      
+                      alert(details);
                     }}
                   >
                     Detalhes
@@ -605,7 +654,7 @@ const BookingsHistory: React.FC = () => {
         </button>
       </div>
 
-      <style >{`
+      <style>{`
         .bookings-container {
           width: 100%;
           animation: fadeIn 0.4s ease;
@@ -619,17 +668,16 @@ const BookingsHistory: React.FC = () => {
 
         /* Badge de Recentes Global */
         .recent-badge {
-  margin-bottom: 20px;
-}
+          margin-bottom: 20px;
+        }
 
-.recent-text {
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 1.6px;
-  text-transform: uppercase;
-  color: #6D28D9;
-}
-
+        .recent-text {
+          font-size: 11.5px;
+          font-weight: 800;
+          letter-spacing: 1.6px;
+          text-transform: uppercase;
+          color: #6D28D9;
+        }
 
         /* Lista de agendamentos */
         .bookings-list {
@@ -812,6 +860,20 @@ const BookingsHistory: React.FC = () => {
           font-weight: 500;
         }
 
+        /* ⭐⭐ NOVO: Badge de LuckCoins pequeno */
+        .luckcoins-badge-small {
+          background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+          color: white;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: 8px;
+        }
+
         /* Card Footer */
         .card-footer {
           padding: 20px 24px;
@@ -839,16 +901,21 @@ const BookingsHistory: React.FC = () => {
           color: #10B981;
         }
 
-        .luckcoins-badge {
+        /* ⭐⭐ NOVO: Estilo para preço em LuckCoins */
+        .luckcoins-price {
           background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
           color: white;
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-size: 13px;
-          font-weight: 600;
-          display: flex;
+          padding: 8px 16px;
+          border-radius: 12px;
+          font-size: 18px;
+          font-weight: 700;
+          display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
+        }
+
+        .luckcoins-price i {
+          font-size: 16px;
         }
 
         /* Actions */
@@ -1107,6 +1174,11 @@ const BookingsHistory: React.FC = () => {
 
           .primary-btn {
             font-size: 14px;
+          }
+
+          .luckcoins-price {
+            font-size: 16px;
+            padding: 6px 12px;
           }
         }
       `}</style>

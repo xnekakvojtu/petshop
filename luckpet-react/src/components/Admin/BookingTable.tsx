@@ -1,63 +1,22 @@
-import React, { useState } from 'react';
-import { Booking } from '../../types';
+import React from 'react';
 
 interface BookingTableProps {
-  bookings: Booking[];
-  onUpdateStatus: (bookingId: string, status: Booking['status'], reason?: string) => void;
-  loading?: boolean;
+  bookings: any[];
+  onUpdateStatus: (bookingId: string, status: string, reason?: string) => void;
+  loading: boolean;
+  formatCustomerName: (customerName?: string, userId?: string) => string;
 }
 
-const BookingTable: React.FC<BookingTableProps> = ({ bookings, onUpdateStatus, loading }) => {
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-
-  const getStatusBadge = (status: Booking['status']) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      confirmed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
-      completed: 'bg-blue-100 text-blue-800',
-    };
-    
-    const labels = {
-      pending: 'Pendente',
-      confirmed: 'Confirmado',
-      cancelled: 'Cancelado',
-      completed: 'Concluído',
-    };
-    
-    return (
-      <span className={`status-badge ${colors[status]}`}>
-        {labels[status]}
-      </span>
-    );
-  };
-
-  const handleConfirm = (bookingId: string) => {
-    if (window.confirm('Confirmar este agendamento?')) {
-      onUpdateStatus(bookingId, 'confirmed');
-    }
-  };
-
-  const handleCancel = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setShowCancelModal(true);
-  };
-
-  const submitCancel = () => {
-    if (selectedBooking && cancelReason.trim()) {
-      onUpdateStatus(selectedBooking.id, 'cancelled', cancelReason);
-      setShowCancelModal(false);
-      setCancelReason('');
-      setSelectedBooking(null);
-    }
-  };
-
+const BookingTable: React.FC<BookingTableProps> = ({ 
+  bookings, 
+  onUpdateStatus, 
+  loading,
+  formatCustomerName 
+}) => {
   if (loading) {
     return (
-      <div className="loading-table">
-        <div className="spinner"></div>
+      <div className="loading-container">
+        <i className="fas fa-spinner fa-spin"></i>
         <p>Carregando agendamentos...</p>
       </div>
     );
@@ -65,24 +24,24 @@ const BookingTable: React.FC<BookingTableProps> = ({ bookings, onUpdateStatus, l
 
   if (bookings.length === 0) {
     return (
-      <div className="empty-table">
+      <div className="empty-state">
         <i className="fas fa-calendar-times"></i>
-        <p>Nenhum agendamento encontrado</p>
+        <h3>Nenhum agendamento encontrado</h3>
+        <p>Tente ajustar os filtros ou criar um novo agendamento.</p>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="booking-table">
-        <table>
+    <div className="booking-table-container">
+      <div className="table-responsive">
+        <table className="bookings-table">
           <thead>
             <tr>
               <th>Cliente</th>
               <th>Pet</th>
               <th>Serviço</th>
-              <th>Data/Hora</th>
-              <th>Valor</th>
+              <th>Data e Hora</th>
               <th>Status</th>
               <th>Ações</th>
             </tr>
@@ -91,64 +50,90 @@ const BookingTable: React.FC<BookingTableProps> = ({ bookings, onUpdateStatus, l
             {bookings.map((booking) => (
               <tr key={booking.id}>
                 <td>
-                  <div className="customer-info">
-                    <div className="customer-name">{booking.customerName || booking.userId}</div>
-                    <div className="customer-contact">{booking.petName}</div>
+                  <div className="client-cell">
+                    <div className="avatar">
+                      {formatCustomerName(booking.customerName, booking.userId)[0]}
+                    </div>
+                    <div>
+                      <div className="client-name">
+                        {formatCustomerName(booking.customerName, booking.userId)}
+                      </div>
+                      <div className="client-info">
+                        <i className="fas fa-phone"></i>
+                        <span>{booking.phone || 'Não informado'}</span>
+                      </div>
+                    </div>
                   </div>
                 </td>
                 <td>
                   <div className="pet-info">
-                    <div className="pet-name">{booking.petName}</div>
-                    <div className="pet-details">{booking.petType} • {booking.petBreed || 'SRD'}</div>
+                    <span className="pet-name">{booking.petName}</span>
+                    <span className="pet-type">{booking.petType || 'Não informado'}</span>
                   </div>
                 </td>
                 <td>
                   <div className="service-info">
-                    <div className="service-name">{booking.serviceName}</div>
-                    <div className="service-duration">{booking.duration}min</div>
+                    <span className="service-name">{booking.serviceName}</span>
+                    <span className="service-price">
+                      R$ {booking.price?.toFixed(2) || '0,00'}
+                    </span>
                   </div>
                 </td>
                 <td>
                   <div className="datetime-info">
-                    <div className="date">{new Date(booking.date).toLocaleDateString('pt-BR')}</div>
+                    <div className="date">
+                      {new Date(booking.date).toLocaleDateString('pt-BR')}
+                    </div>
                     <div className="time">{booking.time}</div>
                   </div>
                 </td>
                 <td>
-                  <div className="price-info">
-                    R$ {booking.servicePrice.toFixed(2)}
-                  </div>
+                  <span className={`status-badge status-${booking.status}`}>
+                    {booking.status === 'pending' && 'Pendente'}
+                    {booking.status === 'confirmed' && 'Confirmado'}
+                    {booking.status === 'cancelled' && 'Cancelado'}
+                    {booking.status === 'completed' && 'Concluído'}
+                  </span>
                 </td>
-                <td>{getStatusBadge(booking.status)}</td>
                 <td>
                   <div className="actions">
+                    <button
+                      className="action-btn view-btn"
+                      onClick={() => window.open(`/admin/bookings/${booking.id}`, '_blank')}
+                      title="Ver detalhes"
+                    >
+                      <i className="fas fa-eye"></i>
+                    </button>
                     {booking.status === 'pending' && (
                       <>
-                        <button 
-                          className="btn-confirm"
-                          onClick={() => handleConfirm(booking.id)}
+                        <button
+                          className="action-btn confirm-btn"
+                          onClick={() => onUpdateStatus(booking.id, 'confirmed')}
+                          title="Confirmar agendamento"
                         >
                           <i className="fas fa-check"></i>
                         </button>
-                        <button 
-                          className="btn-cancel"
-                          onClick={() => handleCancel(booking)}
+                        <button
+                          className="action-btn cancel-btn"
+                          onClick={() => {
+                            const reason = prompt('Motivo do cancelamento:');
+                            if (reason) onUpdateStatus(booking.id, 'cancelled', reason);
+                          }}
+                          title="Cancelar agendamento"
                         >
                           <i className="fas fa-times"></i>
                         </button>
                       </>
                     )}
                     {booking.status === 'confirmed' && (
-                      <button 
-                        className="btn-complete"
+                      <button
+                        className="action-btn complete-btn"
                         onClick={() => onUpdateStatus(booking.id, 'completed')}
+                        title="Marcar como concluído"
                       >
-                        <i className="fas fa-check-circle"></i>
+                        <i className="fas fa-check-double"></i>
                       </button>
                     )}
-                    <button className="btn-view">
-                      <i className="fas fa-eye"></i>
-                    </button>
                   </div>
                 </td>
               </tr>
@@ -156,67 +141,138 @@ const BookingTable: React.FC<BookingTableProps> = ({ bookings, onUpdateStatus, l
           </tbody>
         </table>
       </div>
-
-      {/* Modal de Cancelamento */}
-      {showCancelModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Cancelar Agendamento</h3>
-              <button onClick={() => setShowCancelModal(false)} className="close-btn">
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>Informe o motivo do cancelamento:</p>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Ex: Cliente desistiu, horário indisponível, etc."
-                rows={4}
-              />
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setShowCancelModal(false)} className="btn-secondary">
-                Voltar
-              </button>
-              <button onClick={submitCancel} className="btn-primary" disabled={!cancelReason.trim()}>
-                Confirmar Cancelamento
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style >{`
-        .booking-table {
+      
+      <style>{`
+        .booking-table-container {
           background: white;
           border-radius: 12px;
           overflow: hidden;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          border: 1px solid #e5e7eb;
         }
         
-        table {
+        .table-responsive {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        .bookings-table {
           width: 100%;
           border-collapse: collapse;
+          min-width: 800px;
         }
         
-        th {
-          background: #f9fafb;
-          padding: 16px;
+        .bookings-table th {
+          padding: 12px 16px;
           text-align: left;
           font-weight: 600;
-          color: #374151;
+          color: #6b7280;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
           border-bottom: 2px solid #e5e7eb;
-        }
-        
-        td {
-          padding: 16px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-        
-        tr:hover {
           background: #f9fafb;
+        }
+        
+        .bookings-table td {
+          padding: 16px;
+          border-bottom: 1px solid #f3f4f6;
+          color: #4b5563;
+          font-size: 14px;
+        }
+        
+        .bookings-table tr:last-child td {
+          border-bottom: none;
+        }
+        
+        .client-cell {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .avatar {
+          width: 36px;
+          height: 36px;
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: white;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 14px;
+          flex-shrink: 0;
+        }
+        
+        .client-name {
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 4px;
+        }
+        
+        .client-info {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          color: #6b7280;
+        }
+        
+        .client-info i {
+          font-size: 10px;
+        }
+        
+        .pet-info {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .pet-name {
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 4px;
+        }
+        
+        .pet-type {
+          font-size: 12px;
+          color: #6b7280;
+          background: #f3f4f6;
+          padding: 2px 8px;
+          border-radius: 12px;
+          display: inline-block;
+        }
+        
+        .service-info {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .service-name {
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 4px;
+        }
+        
+        .service-price {
+          font-size: 12px;
+          color: #059669;
+          font-weight: 600;
+        }
+        
+        .datetime-info {
+          min-width: 120px;
+        }
+        
+        .date {
+          font-weight: 500;
+          color: #374151;
+        }
+        
+        .time {
+          font-size: 12px;
+          color: #9ca3af;
+          margin-top: 4px;
         }
         
         .status-badge {
@@ -225,6 +281,32 @@ const BookingTable: React.FC<BookingTableProps> = ({ bookings, onUpdateStatus, l
           font-size: 12px;
           font-weight: 600;
           display: inline-block;
+          text-align: center;
+          min-width: 90px;
+        }
+        
+        .status-pending {
+          background: #fef3c7;
+          color: #92400e;
+          border: 1px solid #fcd34d;
+        }
+        
+        .status-confirmed {
+          background: #d1fae5;
+          color: #065f46;
+          border: 1px solid #10b981;
+        }
+        
+        .status-cancelled {
+          background: #fee2e2;
+          color: #991b1b;
+          border: 1px solid #ef4444;
+        }
+        
+        .status-completed {
+          background: #dbeafe;
+          color: #1e40af;
+          border: 1px solid #3b82f6;
         }
         
         .actions {
@@ -232,204 +314,119 @@ const BookingTable: React.FC<BookingTableProps> = ({ bookings, onUpdateStatus, l
           gap: 8px;
         }
         
-        .actions button {
+        .action-btn {
           width: 32px;
           height: 32px;
-          border-radius: 6px;
+          border-radius: 8px;
           border: none;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           transition: all 0.2s;
-        }
-        
-        .btn-confirm {
-          background: #10b981;
           color: white;
         }
         
-        .btn-cancel {
-          background: #ef4444;
-          color: white;
-        }
-        
-        .btn-complete {
-          background: #3b82f6;
-          color: white;
-        }
-        
-        .btn-view {
+        .view-btn {
           background: #6b7280;
-          color: white;
         }
         
-        .actions button:hover {
-          opacity: 0.9;
-          transform: translateY(-1px);
+        .view-btn:hover {
+          background: #4b5563;
         }
         
-        .customer-info,
-        .pet-info,
-        .service-info,
-        .datetime-info {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+        .confirm-btn {
+          background: #10b981;
         }
         
-        .customer-name,
-        .pet-name,
-        .service-name,
-        .date {
-          font-weight: 600;
-          color: #1f2937;
+        .confirm-btn:hover {
+          background: #059669;
         }
         
-        .customer-contact,
-        .pet-details,
-        .service-duration,
-        .time {
-          font-size: 12px;
-          color: #6b7280;
+        .cancel-btn {
+          background: #ef4444;
         }
         
-        .price-info {
-          font-weight: 700;
-          color: #059669;
+        .cancel-btn:hover {
+          background: #dc2626;
         }
         
-        /* Modal */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
+        .complete-btn {
+          background: #3b82f6;
         }
         
-        .modal {
+        .complete-btn:hover {
+          background: #2563eb;
+        }
+        
+        .loading-container,
+        .empty-state {
+          text-align: center;
+          padding: 60px 20px;
           background: white;
           border-radius: 12px;
-          width: 90%;
-          max-width: 500px;
-          max-height: 90vh;
-          overflow: auto;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          border: 1px solid #e5e7eb;
         }
         
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px;
-          border-bottom: 1px solid #e5e7eb;
+        .loading-container i {
+          font-size: 32px;
+          color: #8b5cf6;
+          margin-bottom: 16px;
         }
         
-        .modal-header h3 {
+        .loading-container p {
+          color: #6b7280;
           margin: 0;
         }
         
-        .close-btn {
-          background: none;
-          border: none;
-          font-size: 18px;
-          cursor: pointer;
-          color: #6b7280;
-        }
-        
-        .modal-body {
-          padding: 20px;
-        }
-        
-        .modal-body textarea {
-          width: 100%;
-          padding: 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          margin-top: 10px;
-          font-family: inherit;
-          resize: vertical;
-        }
-        
-        .modal-footer {
-          padding: 20px;
-          border-top: 1px solid #e5e7eb;
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-        }
-        
-        .btn-primary {
-          background: #8b5cf6;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 8px;
-          cursor: pointer;
-        }
-        
-        .btn-secondary {
-          background: #e5e7eb;
-          color: #374151;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 8px;
-          cursor: pointer;
-        }
-        
-        .btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        
-        .loading-table,
-        .empty-table {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px;
-          background: white;
-          border-radius: 12px;
-          color: #6b7280;
-        }
-        
-        .spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid #e5e7eb;
-          border-top-color: #8b5cf6;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 20px;
-        }
-        
-        .empty-table i {
+        .empty-state i {
           font-size: 48px;
-          margin-bottom: 20px;
           color: #d1d5db;
+          margin-bottom: 16px;
         }
         
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        .empty-state h3 {
+          margin: 0 0 8px 0;
+          color: #374151;
         }
         
-        @media (max-width: 1024px) {
-          .booking-table {
-            overflow-x: auto;
+        .empty-state p {
+          margin: 0;
+          color: #6b7280;
+        }
+        
+        @media (max-width: 768px) {
+          .bookings-table {
+            min-width: 700px;
           }
           
-          table {
-            min-width: 900px;
+          .bookings-table th,
+          .bookings-table td {
+            padding: 12px;
+            font-size: 13px;
+          }
+          
+          .status-badge {
+            min-width: 80px;
+            padding: 4px 8px;
+            font-size: 11px;
+          }
+          
+          .avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 12px;
+          }
+          
+          .action-btn {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
           }
         }
       `}</style>
-    </>
+    </div>
   );
 };
 
