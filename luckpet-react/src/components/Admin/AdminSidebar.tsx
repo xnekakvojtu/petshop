@@ -135,7 +135,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onMobileClose, isMobileOpen
               fontSize: '16px',
               fontWeight: '700',
               lineHeight: '1.2'
-            }}>Pet Beauty</span>
+            }}>LuckPet</span>
             <span style={{ 
               color: '#6b7280',
               fontSize: '12px',
@@ -334,7 +334,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onMobileClose, isMobileOpen
                   color: '#6b7280',
                 }}
               >
-                admin@petbeauty.com
+                admin@luckpet.com
               </span>
             </div>
           </div>
