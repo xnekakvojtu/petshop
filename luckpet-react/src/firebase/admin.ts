@@ -210,10 +210,32 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     const allBookings = await getAllBookings();
     const today = new Date().toISOString().split('T')[0];
     
+    // DEBUG: Verificar formato das datas
+    console.log('📅 HOJE (formato ISO):', today);
+    console.log('📊 Primeiros 3 agendamentos:');
+    allBookings.slice(0, 3).forEach((b, i) => {
+      console.log(`  ${i+1}. ID: ${b.id}, Data: ${b.date}, Status: ${b.status}`);
+    });
+    
+    // Filtro melhorado para "agendamentos hoje"
+    const todayBookings = allBookings.filter(booking => {
+      if (!booking.date) return false;
+      
+      try {
+        // Tentar normalizar a data
+        const bookingDate = booking.date.split('T')[0]; // Remove hora se existir
+        return bookingDate === today;
+      } catch (error) {
+        console.log('⚠️ Erro ao processar data:', booking.date, error);
+        return false;
+      }
+    }).length;
+    
+    console.log(`📈 Agendamentos hoje: ${todayBookings}`);
+    
     const totalBookings = allBookings.length;
     const pendingBookings = allBookings.filter(b => b.status === 'pending').length;
     const confirmedBookings = allBookings.filter(b => b.status === 'confirmed').length;
-    const todayBookings = allBookings.filter(b => b.date === today).length;
     
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -250,6 +272,14 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     };
     
     console.log('✅ Estatísticas calculadas');
+    console.log('📊 Resumo:', {
+      totalBookings,
+      pendingBookings,
+      confirmedBookings,
+      todayBookings,
+      monthlyRevenue,
+    });
+    
     return stats;
     
   } catch (error) {
