@@ -10,6 +10,8 @@ const AdminDashboard: React.FC = () => {
   const { isAdmin, isLoading } = useAuth();
   const { stats, loading, fetchStats, bookings, services } = useAdmin();
   const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
 
   useEffect(() => {
     if (!isAdmin && !isLoading) {
@@ -19,10 +21,16 @@ const AdminDashboard: React.FC = () => {
       fetchStats();
     }
 
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setScreenWidth(window.innerWidth);
+      if (!mobile) setSidebarOpen(false);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [isAdmin, isLoading, navigate, fetchStats]);
 
   if (!isAdmin) return null;
@@ -77,7 +85,7 @@ const AdminDashboard: React.FC = () => {
       title: 'Agendamentos Hoje', 
       value: stats?.todayBookings || 0, 
       icon: 'fas fa-calendar-day', 
-      color: '#8b5cf6', 
+      color: '#7c3aed', 
       change: '+12%' 
     },
     { 
@@ -109,9 +117,9 @@ const AdminDashboard: React.FC = () => {
       change: '+22%' 
     },
     { 
-      title: 'Serviços Cadastrados', 
+      title: 'Serviços Ativos', 
       value: activeServices, 
-      icon: 'fas fa-cut', 
+      icon: 'fas fa-scissors', 
       color: '#ef4444', 
       change: '+2' 
     }
@@ -123,7 +131,7 @@ const AdminDashboard: React.FC = () => {
       desc: 'Gerencie agendamentos', 
       icon: 'fas fa-calendar-plus', 
       path: '/admin/bookings',
-      color: '#8b5cf6'
+      color: '#7c3aed'
     },
     { 
       title: 'Serviços', 
@@ -148,49 +156,236 @@ const AdminDashboard: React.FC = () => {
     }
   ];
 
+  // Funções para grids responsivos
+  const getMetricsGridColumns = () => {
+    if (screenWidth < 640) return '1fr';
+    if (screenWidth < 1024) return 'repeat(2, 1fr)';
+    return 'repeat(3, 1fr)';
+  };
+
+  const getMainContentGridColumns = () => {
+    if (screenWidth < 1024) return '1fr';
+    return '2fr 1fr';
+  };
+
+  const getActionsGridColumns = () => {
+    if (screenWidth < 640) return '1fr';
+    if (screenWidth < 1024) return 'repeat(2, 1fr)';
+    return 'repeat(4, 1fr)';
+  };
+
+  // Calcular padding baseado no sidebar
+  const getDashboardPadding = () => {
+    if (isMobile) {
+      return sidebarOpen ? '1.5rem 1rem 1rem 1rem' : '1.5rem 1rem 1rem 1rem';
+    }
+    return '2rem 2.5rem';
+  };
+
   return (
-    <div className="admin-dashboard">
-      <AdminSidebar />
+    <div className="admin-dashboard" style={{ 
+      display: 'flex', 
+      minHeight: '100vh', 
+      backgroundColor: '#fafafa',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    }}>
+      <AdminSidebar 
+        onMobileClose={() => setSidebarOpen(!sidebarOpen)}
+        isMobileOpen={sidebarOpen}
+      />
       
-      <div className="admin-content">
+      <div 
+        className="admin-content"
+        style={{
+          flex: 1,
+          marginLeft: isMobile ? 0 : '260px',
+          width: isMobile ? '100%' : 'calc(100% - 260px)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          minHeight: '100vh',
+          position: 'relative',
+        }}
+      >
+        {/* Mobile Header */}
         {isMobile && (
-          <div className="mobile-header">
-            <div className="mobile-header-content">
-              <div className="mobile-title">
-                <h1>Dashboard</h1>
-                <p>Painel de controle</p>
-              </div>
-              <button 
-                className="mobile-menu-btn"
-                onClick={() => {
-                  const sidebar = document.querySelector('.admin-sidebar') as HTMLElement;
-                  if (sidebar) sidebar.style.transform = 'translateX(0)';
+          <div 
+            className="mobile-header"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 100,
+              background: 'white',
+              padding: '1rem',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <button 
+              className="mobile-menu-btn"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '0.5rem',
+                cursor: 'pointer',
+                color: '#7c3aed',
+                fontSize: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f5f3ff';
+                e.currentTarget.style.borderColor = '#ddd6fe';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
+            >
+              <i className="fas fa-bars"></i>
+            </button>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div 
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '14px',
                 }}
               >
-                <i className="fas fa-bars"></i>
-              </button>
+                <i className="fas fa-user-cog"></i>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>Admin</span>
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>Pet Beauty</span>
+              </div>
             </div>
           </div>
         )}
         
-        <main className="dashboard-main">
-          <div className="dashboard-header">
-            <div className="header-content">
+        <main 
+          className="dashboard-main"
+          style={{
+            padding: isMobile ? 'calc(1.5rem + 72px) 1rem 1rem 1rem' : '2rem 2.5rem',
+            maxWidth: '1400px',
+            margin: '0 auto',
+            width: '100%',
+          }}
+        >
+          {/* Header Section */}
+          <div className="dashboard-header" style={{ marginBottom: '2rem' }}>
+            <div 
+              className="header-content"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '1.5rem',
+                flexDirection: isMobile ? 'column' : 'row',
+              }}
+            >
               <div className="greeting-section">
-                <h1>Bem-vindo, Admin!</h1>
-                <p className="subtitle">Aqui está o resumo do seu negócio hoje</p>
+                <h1 style={{ 
+                  margin: '0 0 0.5rem 0', 
+                  fontSize: isMobile ? '1.75rem' : '2rem', 
+                  fontWeight: 700, 
+                  color: '#111827',
+                  lineHeight: 1.2 
+                }}>Bem-vindo de volta! 👋</h1>
+                <p style={{ 
+                  margin: 0, 
+                  color: '#6b7280', 
+                  fontSize: isMobile ? '0.9375rem' : '1rem',
+                  lineHeight: 1.5
+                }}>Aqui está o resumo do seu negócio hoje</p>
               </div>
               
-              <div className="date-section">
-                <div className="date-card">
-                  <div className="date-icon">
+              <div 
+                className="date-section"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  width: isMobile ? '100%' : 'auto',
+                }}
+              >
+                <div 
+                  className="date-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    padding: '1rem 1.25rem',
+                    background: 'white',
+                    borderRadius: '12px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid #f3f4f6',
+                    width: isMobile ? '100%' : 'auto',
+                    minWidth: isMobile ? 'auto' : '220px',
+                  }}
+                >
+                  <div 
+                    className="date-icon"
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '1.125rem',
+                    }}
+                  >
                     <i className="fas fa-calendar-alt"></i>
                   </div>
                   <div className="date-info">
-                    <div className="weekday">{dateInfo.weekDay}</div>
-                    <div className="date-display">
-                      <span className="day">{dateInfo.day}</span>
-                      <span className="month-year">{dateInfo.month} • {dateInfo.year}</span>
+                    <div style={{ 
+                      fontSize: '0.8125rem', 
+                      fontWeight: 600, 
+                      color: '#6b7280', 
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      marginBottom: '2px'
+                    }}>{dateInfo.weekDay}</div>
+                    <div 
+                      className="date-display"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: '0.375rem',
+                      }}
+                    >
+                      <span style={{ 
+                        fontSize: '1.5rem', 
+                        fontWeight: 700, 
+                        color: '#111827',
+                        lineHeight: 1 
+                      }}>{dateInfo.day}</span>
+                      <span style={{ 
+                        fontSize: '0.875rem', 
+                        color: '#6b7280', 
+                        fontWeight: 500 
+                      }}>{dateInfo.month} {dateInfo.year}</span>
                     </div>
                   </div>
                 </div>
@@ -198,29 +393,75 @@ const AdminDashboard: React.FC = () => {
                 <button 
                   className="new-booking-btn"
                   onClick={() => navigate('/admin/bookings/new')}
-                  aria-label="Criar novo agendamento"
+                  style={{
+                    padding: isMobile ? '0.875rem 1.25rem' : '0.875rem 1.5rem',
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s ease',
+                    width: isMobile ? '100%' : 'auto',
+                    justifyContent: 'center',
+                    fontSize: '0.9375rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(124, 58, 237, 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <i className="fas fa-plus"></i>
+                  <i className="fas fa-plus" style={{ fontSize: '0.875rem' }}></i>
                   <span>Novo Agendamento</span>
                 </button>
               </div>
             </div>
           </div>
           
-          <section className="metrics-section">
-            <div className="section-header">
-              <h2 className="section-title">
-                <i className="fas fa-chart-bar"></i>
-                Métricas do Dia
+          {/* Metrics Grid */}
+          <section className="metrics-section" style={{ marginBottom: '2rem' }}>
+            <div 
+              className="section-header"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.5rem',
+              }}
+            >
+              <h2 
+                className="section-title"
+                style={{
+                  margin: 0,
+                  fontSize: '1.25rem',
+                  fontWeight: 600,
+                  color: '#111827',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                }}
+              >
+                <i className="fas fa-chart-bar" style={{ color: '#7c3aed' }}></i>
+                Visão Geral
               </h2>
-              <div className="time-filter">
-                <span className="active">Hoje</span>
-                <span>Semana</span>
-                <span>Mês</span>
-              </div>
             </div>
             
-            <div className="metrics-grid">
+            <div 
+              className="metrics-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: getMetricsGridColumns(),
+                gap: '1.25rem',
+              }}
+            >
               {metrics.map((metric, index) => (
                 <StatsCard
                   key={index}
@@ -229,193 +470,240 @@ const AdminDashboard: React.FC = () => {
                   icon={metric.icon}
                   color={metric.color}
                   change={metric.change}
+                  
                 />
               ))}
             </div>
           </section>
           
-          <div className="main-content-grid">
-            <section className="content-card bookings-card">
-              <div className="card-header">
+          {/* Main Content Grid */}
+          <div 
+            className="main-content-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: getMainContentGridColumns(),
+              gap: '1.5rem',
+              marginBottom: '2rem',
+            }}
+          >
+            {/* Recent Bookings Section */}
+            <section 
+              className="content-card bookings-card"
+              style={{
+                background: 'white',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                border: '1px solid #f3f4f6',
+                height: 'fit-content',
+              }}
+            >
+              <div 
+                className="card-header"
+                style={{
+                  padding: '1.5rem',
+                  borderBottom: '1px solid #f3f4f6',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  gap: isMobile ? '1rem' : '0',
+                }}
+              >
                 <div className="card-title-section">
-                  <h2 className="card-title">
-                    <i className="fas fa-history"></i>
+                  <h2 
+                    className="card-title"
+                    style={{
+                      margin: 0,
+                      fontSize: '1.125rem',
+                      fontWeight: 600,
+                      color: '#111827',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    <i className="fas fa-history" style={{ color: '#7c3aed' }}></i>
                     Agendamentos Recentes
                   </h2>
-                  <span className="card-subtitle">Últimos 5 agendamentos</span>
+                  <span style={{ 
+                    fontSize: '0.875rem', 
+                    color: '#6b7280',
+                    marginTop: '0.25rem',
+                    display: 'block'
+                  }}>Últimos 5 agendamentos</span>
                 </div>
                 <button 
                   className="card-action-btn"
                   onClick={() => navigate('/admin/bookings')}
-                  aria-label="Ver todos os agendamentos"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #e5e7eb',
+                    color: '#7c3aed',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f5f3ff';
+                    e.currentTarget.style.borderColor = '#ddd6fe';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                  }}
                 >
                   Ver Todos
-                  <i className="fas fa-arrow-right"></i>
+                  <i className="fas fa-arrow-right" style={{ fontSize: '0.75rem' }}></i>
                 </button>
               </div>
               
-              <div className="card-body">
+              <div className="card-body" style={{ padding: '0' }}>
                 {loading.bookings ? (
-                  <div className="loading-state">
-                    <div className="spinner"></div>
-                    <p>Carregando agendamentos...</p>
+                  <div className="loading-state" style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: '3rem 2rem', 
+                    textAlign: 'center' 
+                  }}>
+                    <div className="spinner" style={{ 
+                      width: '2.5rem', 
+                      height: '2.5rem', 
+                      border: '2px solid #e5e7eb', 
+                      borderTopColor: '#7c3aed', 
+                      borderRadius: '50%', 
+                      animation: 'spin 1s linear infinite', 
+                      marginBottom: '1rem' 
+                    }}></div>
+                    <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>Carregando agendamentos...</p>
                   </div>
                 ) : recentBookings.length === 0 ? (
-                  <div className="empty-state">
-                    <i className="fas fa-calendar-times"></i>
-                    <p>Nenhum agendamento recente</p>
+                  <div className="empty-state" style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: '3rem 2rem', 
+                    textAlign: 'center' 
+                  }}>
+                    <i className="fas fa-calendar-times" style={{ fontSize: '2.5rem', color: '#d1d5db', marginBottom: '1rem' }}></i>
+                    <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>Nenhum agendamento recente</p>
                   </div>
                 ) : (
-                  <>
-                    {!isMobile && (
-                      <div className="bookings-table">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Cliente</th>
-                              <th>Pet</th>
-                              <th>Serviço</th>
-                              <th>Data</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {recentBookings.map((booking) => (
-                              <tr 
-                                key={booking.id} 
-                                className="booking-row"
-                                onClick={() => navigate(`/admin/bookings/${booking.id}`)}
-                              >
-                                <td>
-                                  <div className="client-info">
-                                    <div className="client-avatar">
-                                      {booking.avatarLetter}
-                                    </div>
-                                    <div className="client-details">
-                                      <div className="client-name">{booking.clientName}</div>
-                                      <div className="client-phone">{booking.customerPhone || 'Sem telefone'}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <div className="pet-info">
-                                    <span className="pet-name">{booking.petName}</span>
-                                    <span className="pet-type">{booking.petType || 'Não informado'}</span>
-                                  </div>
-                                </td>
-                                <td className="service-name">{booking.serviceName}</td>
-                                <td>
-                                  <div className="booking-date">
-                                    <span className="date">{booking.formattedDate}</span>
-                                    <span className="time">{booking.time}</span>
-                                  </div>
-                                </td>
-                                <td>
-                                  <span className={`status-badge status-${booking.status}`}>
-                                    {booking.status === 'pending' && 'Pendente'}
-                                    {booking.status === 'confirmed' && 'Confirmado'}
-                                    {booking.status === 'cancelled' && 'Cancelado'}
-                                    {booking.status === 'completed' && 'Concluído'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    
-                    {isMobile && (
-                      <div className="mobile-bookings">
-                        {recentBookings.map((booking) => (
-                          <div 
-                            key={booking.id} 
-                            className="booking-card-mobile"
-                            onClick={() => navigate(`/admin/bookings/${booking.id}`)}
-                          >
-                            <div className="booking-header-mobile">
-                              <div className="client-info-mobile">
-                                <div className="client-avatar-mobile">
-                                  {booking.avatarLetter}
-                                </div>
-                                <div className="client-details-mobile">
-                                  <div className="client-name-mobile">{booking.clientName}</div>
-                                  <div className="client-phone-mobile">{booking.customerPhone || 'Sem telefone'}</div>
-                                  <div className="pet-info-mobile">{booking.petName}</div>
-                                </div>
-                              </div>
-                              <span className={`status-badge-mobile status-${booking.status}`}>
-                                {booking.status === 'pending' && 'Pendente'}
-                                {booking.status === 'confirmed' && 'Confirmado'}
-                                {booking.status === 'cancelled' && 'Cancelado'}
-                                {booking.status === 'completed' && 'Concluído'}
-                              </span>
-                            </div>
-                            <div className="booking-body-mobile">
-                              <div className="service-info-mobile">
-                                <i className="fas fa-cut"></i>
-                                <span>{booking.serviceName}</span>
-                              </div>
-                              <div className="date-info-mobile">
-                                <i className="far fa-calendar"></i>
-                                <span>{booking.formattedDate} • {booking.time}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </section>
-            
-            <section className="content-card services-card">
-              <div className="card-header">
-                <div className="card-title-section">
-                  <h2 className="card-title">
-                    <i className="fas fa-fire"></i>
-                    Serviços Mais Populares
-                  </h2>
-                  <span className="card-subtitle">Este mês</span>
-                </div>
-              </div>
-              
-              <div className="card-body">
-                {loading.stats ? (
-                  <div className="loading-state">
-                    <div className="spinner"></div>
-                    <p>Carregando serviços...</p>
-                  </div>
-                ) : popularServices.length === 0 ? (
-                  <div className="empty-state">
-                    <i className="fas fa-chart-bar"></i>
-                    <p>Sem dados de serviços</p>
-                  </div>
-                ) : (
-                  <div className="services-list">
-                    {popularServices.map((service, index) => (
+                  <div className="bookings-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    {recentBookings.map((booking, index) => (
                       <div 
-                        key={index} 
-                        className="service-item"
-                        onClick={() => navigate('/admin/services')}
+                        key={booking.id} 
+                        className="booking-item"
+                        onClick={() => navigate(`/admin/bookings/${booking.id}`)}
+                        style={{
+                          padding: '1.25rem 1.5rem',
+                          borderBottom: index < recentBookings.length - 1 ? '1px solid #f3f4f6' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '1rem',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#f9fafb';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
                       >
-                        <div className="service-rank">
-                          <span className="rank-number">#{index + 1}</span>
-                          <div className="rank-bar">
-                            <div 
-                              className="rank-fill"
-                              style={{ 
-                                width: `${Math.min((service.count / (popularServices[0]?.count || 1)) * 100, 100)}%` 
-                              }}
-                            ></div>
-                          </div>
+                        <div 
+                          className="client-avatar"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '1rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {booking.avatarLetter}
                         </div>
-                        <div className="service-info">
-                          <div className="service-name">{service.serviceName}</div>
-                          <div className="service-count">
-                            <i className="fas fa-calendar-check"></i>
-                            {service.count} agendamentos
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'flex-start',
+                            marginBottom: '0.375rem',
+                            flexWrap: 'wrap',
+                            gap: '0.5rem'
+                          }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#111827', marginBottom: '0.125rem' }}>
+                                {booking.clientName}
+                              </div>
+                              <div style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+                                {booking.serviceName}
+                              </div>
+                            </div>
+                            <span 
+                              className={`status-badge status-${booking.status}`}
+                              style={{
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                ...(booking.status === 'pending' ? { 
+                                  background: '#fef3c7', 
+                                  color: '#92400e',
+                                } :
+                                booking.status === 'confirmed' ? { 
+                                  background: '#d1fae5', 
+                                  color: '#065f46',
+                                } :
+                                booking.status === 'cancelled' ? { 
+                                  background: '#fee2e2', 
+                                  color: '#991b1b',
+                                } :
+                                { 
+                                  background: '#dbeafe', 
+                                  color: '#1e40af',
+                                })
+                              }}
+                            >
+                              {booking.status === 'pending' && 'Pendente'}
+                              {booking.status === 'confirmed' && 'Confirmado'}
+                              {booking.status === 'cancelled' && 'Cancelado'}
+                              {booking.status === 'completed' && 'Concluído'}
+                            </span>
+                          </div>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '1rem',
+                            fontSize: '0.8125rem',
+                            color: '#6b7280',
+                            flexWrap: 'wrap'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <i className="fas fa-paw" style={{ fontSize: '0.75rem' }}></i>
+                              <span>{booking.petName}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <i className="far fa-calendar" style={{ fontSize: '0.75rem' }}></i>
+                              <span>{booking.formattedDate} • {booking.time}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -424,31 +712,320 @@ const AdminDashboard: React.FC = () => {
                 )}
               </div>
             </section>
+            
+            {/* Popular Services Section - FIXED para responsividade */}
+            <section 
+              className="content-card services-card"
+              style={{
+                background: 'white',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                border: '1px solid #f3f4f6',
+                height: 'fit-content',
+              }}
+            >
+              <div 
+                className="card-header"
+                style={{
+                  padding: '1.5rem',
+                  borderBottom: '1px solid #f3f4f6',
+                }}
+              >
+                <div className="card-title-section">
+                  <h2 
+                    className="card-title"
+                    style={{
+                      margin: 0,
+                      fontSize: '1.125rem',
+                      fontWeight: 600,
+                      color: '#111827',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    <i className="fas fa-chart-line" style={{ color: '#ef4444' }}></i>
+                    Serviços Mais Populares
+                  </h2>
+                  <span style={{ 
+                    fontSize: '0.875rem', 
+                    color: '#6b7280',
+                    marginTop: '0.25rem',
+                    display: 'block'
+                  }}>Este mês</span>
+                </div>
+              </div>
+              
+              <div className="card-body" style={{ padding: '1.5rem' }}>
+                {loading.stats ? (
+                  <div className="loading-state" style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: '2rem', 
+                    textAlign: 'center' 
+                  }}>
+                    <div className="spinner" style={{ 
+                      width: '2.5rem', 
+                      height: '2.5rem', 
+                      border: '2px solid #e5e7eb', 
+                      borderTopColor: '#7c3aed', 
+                      borderRadius: '50%', 
+                      animation: 'spin 1s linear infinite', 
+                      marginBottom: '1rem' 
+                    }}></div>
+                    <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>Carregando serviços...</p>
+                  </div>
+                ) : popularServices.length === 0 ? (
+                  <div className="empty-state" style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: '2rem', 
+                    textAlign: 'center' 
+                  }}>
+                    <i className="fas fa-chart-bar" style={{ fontSize: '2.5rem', color: '#d1d5db', marginBottom: '1rem' }}></i>
+                    <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>Sem dados de serviços</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="services-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {popularServices.map((service, index) => {
+                        const maxCount = Math.max(...popularServices.map(s => s.count));
+                        const percentage = (service.count / maxCount) * 100;
+                        
+                        return (
+                          <div 
+                            key={index} 
+                            className="service-item"
+                            onClick={() => navigate('/admin/services')}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.875rem',
+                              padding: '0.875rem',
+                              borderRadius: '10px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#f9fafb';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            <div 
+                              className="service-rank"
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                background: index === 0 ? '#fef3c7' : 
+                                          index === 1 ? '#e5e7eb' : 
+                                          index === 2 ? '#fde68a' : '#f3f4f6',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 600,
+                                color: index === 0 ? '#92400e' : 
+                                      index === 1 ? '#374151' : 
+                                      index === 2 ? '#854d0e' : '#6b7280',
+                                fontSize: '0.875rem',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {index + 1}
+                            </div>
+                            
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                marginBottom: '0.25rem',
+                                flexWrap: screenWidth < 1024 ? 'wrap' : 'nowrap',
+                                gap: '0.5rem'
+                              }}>
+                                <div style={{ 
+                                  fontWeight: 500, 
+                                  color: '#111827',
+                                  fontSize: '0.9375rem',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {service.serviceName}
+                                </div>
+                                <div style={{ 
+                                  fontWeight: 600, 
+                                  color: '#7c3aed',
+                                  fontSize: '0.875rem',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {service.count} {service.count === 1 ? 'vez' : 'vezes'}
+                                </div>
+                              </div>
+                              
+                              <div style={{ 
+                                width: '100%', 
+                                height: '6px', 
+                                background: '#f3f4f6',
+                                borderRadius: '3px',
+                                overflow: 'hidden',
+                                marginTop: '0.5rem'
+                              }}>
+                                <div 
+                                  style={{ 
+                                    width: `${percentage}%`,
+                                    height: '100%',
+                                    background: index === 0 ? '#f59e0b' : 
+                                              index === 1 ? '#7c3aed' : 
+                                              index === 2 ? '#10b981' : '#6b7280',
+                                    borderRadius: '3px',
+                                    transition: 'width 0.3s ease'
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <button 
+                      className="view-all-services"
+                      onClick={() => navigate('/admin/services')}
+                      style={{
+                        width: '100%',
+                        marginTop: '1.5rem',
+                        padding: '0.75rem',
+                        background: 'transparent',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        color: '#7c3aed',
+                        fontWeight: 500,
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#f5f3ff';
+                        e.currentTarget.style.borderColor = '#ddd6fe';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                      }}
+                    >
+                      Ver Todos os Serviços
+                      <i className="fas fa-arrow-right" style={{ fontSize: '0.75rem' }}></i>
+                    </button>
+                  </>
+                )}
+              </div>
+            </section>
           </div>
           
+          {/* Quick Actions Section */}
           <section className="quick-actions-section">
-            <h2 className="section-title">
-              <i className="fas fa-bolt"></i>
+            <h2 
+              className="section-title"
+              style={{
+                margin: '0 0 1.25rem 0',
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: '#111827',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+              }}
+            >
+              <i className="fas fa-bolt" style={{ color: '#7c3aed' }}></i>
               Ações Rápidas
             </h2>
             
-            <div className="actions-grid">
+            <div 
+              className="actions-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: getActionsGridColumns(),
+                gap: '1rem',
+              }}
+            >
               {quickActions.map((action, index) => (
                 <button
                   key={index}
                   className="action-card"
-                  onClick={() => navigate(action.path)}
-                  style={{ '--action-color': action.color } as React.CSSProperties}
+                  onClick={() => {
+                    navigate(action.path);
+                    if (isMobile) setSidebarOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    padding: '1.5rem',
+                    background: 'white',
+                    borderRadius: '12px',
+                    border: '1px solid #f3f4f6',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s ease',
+                    width: '100%',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+                    e.currentTarget.style.borderColor = action.color;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = '#f3f4f6';
+                  }}
                 >
-                  <div className="action-icon">
+                  <div 
+                    className="action-icon"
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      background: `linear-gradient(135deg, ${action.color} 0%, color-mix(in srgb, ${action.color} 70%, white) 100%)`,
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '1.25rem',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
                     <i className={action.icon}></i>
                   </div>
                   <div className="action-content">
-                    <h3>{action.title}</h3>
-                    <p>{action.desc}</p>
-                  </div>
-                  <div className="action-arrow">
-                    <i className="fas fa-arrow-right"></i>
+                    <h3 style={{ 
+                      margin: '0 0 0.375rem 0', 
+                      fontSize: '1rem', 
+                      fontWeight: 600, 
+                      color: '#111827' 
+                    }}>
+                      {action.title}
+                    </h3>
+                    <p style={{ 
+                      margin: 0, 
+                      fontSize: '0.875rem', 
+                      color: '#6b7280', 
+                      lineHeight: 1.4 
+                    }}>
+                      {action.desc}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -458,946 +1035,63 @@ const AdminDashboard: React.FC = () => {
       </div>
       
       <style>{`
-        /* CSS COMPLETO */
-        :root {
-          --primary: #8b5cf6;
-          --primary-light: #a78bfa;
-          --secondary: #10b981;
-          --warning: #f59e0b;
-          --danger: #ef4444;
-          --info: #3b82f6;
-          --success: #059669;
-          --gray-50: #f8fafc;
-          --gray-100: #f1f5f9;
-          --gray-200: #e2e8f0;
-          --gray-300: #cbd5e1;
-          --gray-400: #94a3b8;
-          --gray-500: #64748b;
-          --gray-600: #475569;
-          --gray-700: #334155;
-          --gray-800: #1e293b;
-          --gray-900: #0f172a;
-          --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-          --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-          --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-          --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-          --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          --radius-sm: 0.375rem;
-          --radius: 0.5rem;
-          --radius-md: 0.75rem;
-          --radius-lg: 1rem;
-          --radius-xl: 1.5rem;
-          --radius-full: 9999px;
-        }
-        
-        .admin-dashboard {
-          display: flex;
-          min-height: 100vh;
-          width: 100%;
-          background: var(--gray-50);
-        }
-        
-        .admin-content {
-          flex: 1;
-          margin-left: 280px;
-          min-height: 100vh;
-          width: calc(100% - 280px);
-          transition: all 0.3s ease;
-        }
-        
-        .dashboard-main {
-          padding: 2rem;
-          max-width: 1400px;
-          margin: 0 auto;
-        }
-        
-        .mobile-header {
-          display: none;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 100;
-          background: white;
-          padding: 1rem;
-          box-shadow: var(--shadow-sm);
-          border-bottom: 1px solid var(--gray-200);
-        }
-        
-        .mobile-header-content {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        
-        .mobile-title h1 {
-          margin: 0;
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--gray-900);
-        }
-        
-        .mobile-title p {
-          margin: 0.25rem 0 0 0;
-          font-size: 0.75rem;
-          color: var(--gray-500);
-        }
-        
-        .mobile-menu-btn {
-          width: 2.5rem;
-          height: 2.5rem;
-          border-radius: var(--radius);
-          background: var(--gray-100);
-          border: none;
-          color: var(--gray-600);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-        
-        .mobile-menu-btn:hover {
-          background: var(--gray-200);
-        }
-        
-        .dashboard-header {
-          margin-bottom: 2.5rem;
-        }
-        
-        .header-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 1.5rem;
-        }
-        
-        .greeting-section h1 {
-          margin: 0 0 0.5rem 0;
-          font-size: 2rem;
-          font-weight: 700;
-          color: var(--gray-900);
-          line-height: 1.2;
-        }
-        
-        .subtitle {
-          margin: 0;
-          color: var(--gray-500);
-          font-size: 1rem;
-        }
-        
-        .date-section {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-        
-        .date-card {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem 1.5rem;
-          background: white;
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow);
-          border: 1px solid var(--gray-200);
-        }
-        
-        .date-icon {
-          width: 3rem;
-          height: 3rem;
-          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 1.25rem;
-        }
-        
-        .date-info {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .weekday {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--gray-500);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        
-        .date-display {
-          display: flex;
-          align-items: baseline;
-          gap: 0.5rem;
-        }
-        
-        .day {
-          font-size: 1.875rem;
-          font-weight: 700;
-          color: var(--gray-900);
-          line-height: 1;
-        }
-        
-        .month-year {
-          font-size: 0.875rem;
-          color: var(--gray-500);
-          font-weight: 500;
-        }
-        
-        .new-booking-btn {
-          padding: 0.875rem 1.5rem;
-          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-          color: white;
-          border: none;
-          border-radius: var(--radius-md);
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
-        }
-        
-        .new-booking-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
-        }
-        
-        .metrics-section {
-          margin-bottom: 2.5rem;
-        }
-        
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1.5rem;
-        }
-        
-        .section-title {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 600;
-          color: var(--gray-900);
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        
-        .section-title i {
-          color: var(--primary);
-        }
-        
-        .time-filter {
-          display: flex;
-          gap: 0.5rem;
-          background: var(--gray-100);
-          padding: 0.25rem;
-          border-radius: var(--radius);
-        }
-        
-        .time-filter span {
-          padding: 0.5rem 1rem;
-          border-radius: var(--radius-sm);
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--gray-500);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .time-filter span:hover {
-          background: var(--gray-200);
-        }
-        
-        .time-filter span.active {
-          background: white;
-          color: var(--primary);
-          box-shadow: var(--shadow-sm);
-        }
-        
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
-        }
-        
-        .main-content-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 2rem;
-          margin-bottom: 2.5rem;
-        }
-        
-        .content-card {
-          background: white;
-          border-radius: var(--radius-xl);
-          overflow: hidden;
-          box-shadow: var(--shadow);
-          border: 1px solid var(--gray-200);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .content-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-lg);
-        }
-        
-        .card-header {
-          padding: 1.5rem 2rem;
-          border-bottom: 1px solid var(--gray-200);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        
-        .card-title-section {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-        
-        .card-title {
-          margin: 0;
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--gray-900);
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        
-        .card-subtitle {
-          font-size: 0.875rem;
-          color: var(--gray-500);
-        }
-        
-        .card-action-btn {
-          background: none;
-          border: none;
-          color: var(--primary);
-          font-weight: 600;
-          font-size: 0.875rem;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: var(--radius);
-          transition: all 0.2s;
-        }
-        
-        .card-action-btn:hover {
-          background: var(--gray-100);
-        }
-        
-        .card-body {
-          padding: 1.5rem 2rem;
-        }
-        
-        .bookings-table {
-          overflow-x: auto;
-        }
-        
-        .bookings-table table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        
-        .bookings-table th {
-          padding: 1rem;
-          text-align: left;
-          font-weight: 600;
-          color: var(--gray-500);
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          border-bottom: 2px solid var(--gray-200);
-        }
-        
-        .bookings-table td {
-          padding: 1rem;
-          border-bottom: 1px solid var(--gray-100);
-        }
-        
-        .booking-row {
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        
-        .booking-row:hover {
-          background: var(--gray-50);
-        }
-        
-        .client-info {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        
-        .client-avatar {
-          width: 2.5rem;
-          height: 2.5rem;
-          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-          border-radius: var(--radius);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 600;
-          font-size: 1rem;
-          flex-shrink: 0;
-        }
-        
-        .client-details {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .client-name {
-          font-weight: 600;
-          color: var(--gray-900);
-          margin-bottom: 0.125rem;
-        }
-        
-        .client-phone {
-          font-size: 0.75rem;
-          color: var(--gray-500);
-        }
-        
-        .pet-info {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .pet-name {
-          font-weight: 600;
-          color: var(--gray-900);
-          margin-bottom: 0.25rem;
-        }
-        
-        .pet-type {
-          font-size: 0.75rem;
-          color: var(--gray-500);
-          background: var(--gray-100);
-          padding: 0.125rem 0.5rem;
-          border-radius: var(--radius-full);
-          display: inline-block;
-        }
-        
-        .service-name {
-          font-weight: 500;
-          color: var(--gray-700);
-        }
-        
-        .booking-date {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .date {
-          font-weight: 500;
-          color: var(--gray-900);
-        }
-        
-        .time {
-          font-size: 0.75rem;
-          color: var(--gray-500);
-          margin-top: 0.25rem;
-        }
-        
-        .status-badge {
-          padding: 0.375rem 1rem;
-          border-radius: var(--radius-full);
-          font-size: 0.75rem;
-          font-weight: 600;
-          display: inline-block;
-          text-align: center;
-          min-width: 6rem;
-        }
-        
-        .status-pending {
-          background: #fef3c7;
-          color: #92400e;
-        }
-        
-        .status-confirmed {
-          background: #d1fae5;
-          color: #065f46;
-        }
-        
-        .status-cancelled {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-        
-        .status-completed {
-          background: #dbeafe;
-          color: #1e40af;
-        }
-        
-        .mobile-bookings {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-        
-        .booking-card-mobile {
-          padding: 1rem;
-          background: var(--gray-50);
-          border-radius: var(--radius);
-          border: 1px solid var(--gray-200);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .booking-card-mobile:hover {
-          background: white;
-          border-color: var(--primary);
-          transform: translateX(4px);
-        }
-        
-        .booking-header-mobile {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 0.75rem;
-        }
-        
-        .client-info-mobile {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        
-        .client-avatar-mobile {
-          width: 2.25rem;
-          height: 2.25rem;
-          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-          border-radius: var(--radius);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 600;
-          font-size: 0.875rem;
-        }
-        
-        .client-details-mobile {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .client-name-mobile {
-          font-weight: 600;
-          color: var(--gray-900);
-          margin-bottom: 0.125rem;
-        }
-        
-        .client-phone-mobile {
-          font-size: 0.7rem;
-          color: var(--gray-500);
-          margin-bottom: 0.125rem;
-        }
-        
-        .pet-info-mobile {
-          font-size: 0.75rem;
-          color: var(--gray-400);
-        }
-        
-        .status-badge-mobile {
-          padding: 0.25rem 0.75rem;
-          border-radius: var(--radius-full);
-          font-size: 0.625rem;
-          font-weight: 600;
-        }
-        
-        .booking-body-mobile {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        
-        .service-info-mobile,
-        .date-info-mobile {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--gray-600);
-          font-size: 0.875rem;
-        }
-        
-        .service-info-mobile i,
-        .date-info-mobile i {
-          color: var(--primary);
-          font-size: 0.75rem;
-          width: 1rem;
-        }
-        
-        .services-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-        
-        .service-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 0.875rem;
-          background: var(--gray-50);
-          border-radius: var(--radius);
-          border: 1px solid var(--gray-200);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .service-item:hover {
-          background: white;
-          border-color: var(--primary);
-          transform: translateX(4px);
-        }
-        
-        .service-rank {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.25rem;
-          flex-shrink: 0;
-        }
-        
-        .rank-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: var(--primary);
-          background: var(--gray-100);
-          width: 2rem;
-          height: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: var(--radius);
-        }
-        
-        .rank-bar {
-          width: 0.25rem;
-          height: 2rem;
-          background: var(--gray-200);
-          border-radius: var(--radius-full);
-          overflow: hidden;
-        }
-        
-        .rank-fill {
-          height: 100%;
-          background: linear-gradient(to top, var(--primary), var(--primary-light));
-          border-radius: var(--radius-full);
-          transition: width 0.3s ease;
-        }
-        
-        .service-info {
-          flex: 1;
-        }
-        
-        .service-name {
-          font-weight: 600;
-          color: var(--gray-900);
-          margin-bottom: 0.25rem;
-        }
-        
-        .service-count {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.75rem;
-          color: var(--gray-500);
-        }
-        
-        .service-count i {
-          color: var(--primary);
-          font-size: 0.625rem;
-        }
-        
-        .quick-actions-section {
-          margin-top: 2rem;
-        }
-        
-        .actions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 1rem;
-        }
-        
-        .action-card {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.5rem;
-          background: white;
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--gray-200);
-          cursor: pointer;
-          text-align: left;
-          transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .action-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: var(--action-color, var(--primary));
-        }
-        
-        .action-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-lg);
-          border-color: var(--action-color, var(--primary));
-        }
-        
-        .action-icon {
-          width: 3rem;
-          height: 3rem;
-          background: linear-gradient(135deg, var(--action-color, var(--primary)) 0%, 
-                    color-mix(in srgb, var(--action-color, var(--primary)) 70%, white) 100%);
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
-        
-        .action-content {
-          flex: 1;
-        }
-        
-        .action-content h3 {
-          margin: 0 0 0.25rem 0;
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--gray-900);
-        }
-        
-        .action-content p {
-          margin: 0;
-          font-size: 0.875rem;
-          color: var(--gray-500);
-          line-height: 1.4;
-        }
-        
-        .action-arrow {
-          color: var(--gray-400);
-          transition: transform 0.3s ease;
-        }
-        
-        .action-card:hover .action-arrow {
-          color: var(--action-color, var(--primary));
-          transform: translateX(4px);
-        }
-        
-        .loading-state,
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem 2rem;
-          text-align: center;
-        }
-        
-        .spinner {
-          width: 3rem;
-          height: 3rem;
-          border: 3px solid var(--gray-200);
-          border-top-color: var(--primary);
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 1rem;
-        }
-        
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
         
-        .loading-state p,
-        .empty-state p {
-          margin: 0;
-          color: var(--gray-500);
-          font-size: 0.875rem;
+        .bookings-list::-webkit-scrollbar {
+          width: 4px;
         }
         
-        .empty-state i {
-          font-size: 3rem;
-          color: var(--gray-300);
-          margin-bottom: 1rem;
+        .bookings-list::-webkit-scrollbar-track {
+          background: transparent;
         }
         
-        @media (max-width: 1200px) {
-          .admin-content {
-            margin-left: 240px;
-            width: calc(100% - 240px);
-          }
-          
-          .main-content-grid {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-          }
-          
-          .metrics-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
+        .bookings-list::-webkit-scrollbar-thumb {
+          background: #e5e7eb;
+          border-radius: 2px;
         }
         
-        @media (max-width: 1024px) {
-          .admin-content {
-            margin-left: 200px;
-            width: calc(100% - 200px);
-          }
-          
-          .dashboard-main {
-            padding: 1.5rem;
-          }
-          
-          .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .date-section {
-            width: 100%;
-            justify-content: space-between;
-          }
+        .bookings-list::-webkit-scrollbar-thumb:hover {
+          background: #d1d5db;
         }
         
         @media (max-width: 768px) {
           .mobile-header {
-            display: block;
-          }
-          
-          .admin-content {
-            margin-left: 0;
-            width: 100%;
-            padding-top: 5rem;
+            display: flex !important;
           }
           
           .dashboard-main {
-            padding: 1rem;
-          }
-          
-          .date-section {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          
-          .new-booking-btn {
-            justify-content: center;
-          }
-          
-          .metrics-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .actions-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .section-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .time-filter {
-            align-self: stretch;
-            justify-content: center;
-          }
-          
-          .card-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .card-action-btn {
-            align-self: flex-end;
+            padding-top: calc(1.5rem + 72px) !important;
           }
         }
         
-        @media (max-width: 480px) {
+        @media (min-width: 769px) {
+          .mobile-header {
+            display: none !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
           .dashboard-main {
-            padding: 0.75rem;
-          }
-          
-          .greeting-section h1 {
-            font-size: 1.5rem;
-          }
-          
-          .date-card {
-            padding: 0.75rem 1rem;
-          }
-          
-          .date-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            font-size: 1rem;
-          }
-          
-          .day {
-            font-size: 1.5rem;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
           }
           
           .card-header,
           .card-body {
-            padding: 1rem;
-          }
-          
-          .action-card {
-            padding: 1rem;
-          }
-          
-          .action-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            font-size: 1rem;
+            padding: 1rem !important;
           }
         }
         
-        @media (max-width: 360px) {
-          .dashboard-main {
-            padding: 0.5rem;
+        @media (max-width: 480px) {
+          .service-item {
+            flex-direction: column !important;
+            text-align: center !important;
           }
           
-          .date-card {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.5rem;
-          }
-          
-          .date-display {
-            justify-content: center;
-          }
-          
-          .new-booking-btn span {
-            display: none;
-          }
-          
-          .new-booking-btn i {
-            margin: 0;
-          }
-          
-          .bookings-table th,
-          .bookings-table td {
-            padding: 0.5rem;
+          .service-rank {
+            align-self: center !important;
           }
         }
       `}</style>

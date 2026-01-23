@@ -7,6 +7,10 @@ const AdminSchedule: React.FC = () => {
   const navigate = useNavigate();
   const { isAdmin, isLoading } = useAuth();
 
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+
   const [workingHours, setWorkingHours] = useState({
     openingTime: '08:00',
     closingTime: '18:00',
@@ -16,18 +20,46 @@ const AdminSchedule: React.FC = () => {
 
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [newBlockedDate, setNewBlockedDate] = useState('');
-  const [workingDays, setWorkingDays] = useState([1, 2, 3, 4, 5]); // Segunda a sexta
+  const [workingDays, setWorkingDays] = useState([1, 2, 3, 4, 5]);
   const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (!isAdmin && !isLoading) {
-      navigate('/');
+      navigate('/login');
     }
+    
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setScreenWidth(window.innerWidth);
+      if (!mobile) setSidebarOpen(false);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [isAdmin, isLoading, navigate]);
 
-  if (!isAdmin) {
-    return null;
-  }
+  const showSuccessMessage = (message: string) => {
+    setSuccessMessage(message);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const getCurrentDate = () => {
+    const today = new Date();
+    const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    
+    return {
+      day: today.getDate(),
+      weekday: weekdays[today.getDay()],
+      month: months[today.getMonth()],
+      year: today.getFullYear()
+    };
+  };
 
   const handleTimeChange = (field: string, value: string | number) => {
     setWorkingHours(prev => ({ ...prev, [field]: value }));
@@ -37,11 +69,13 @@ const AdminSchedule: React.FC = () => {
     if (newBlockedDate && !blockedDates.includes(newBlockedDate)) {
       setBlockedDates(prev => [...prev, newBlockedDate].sort());
       setNewBlockedDate('');
+      showSuccessMessage('Data bloqueada adicionada!');
     }
   };
 
   const handleRemoveBlockedDate = (date: string) => {
     setBlockedDates(prev => prev.filter(d => d !== date));
+    showSuccessMessage('Data removida!');
   };
 
   const handleWorkingDayToggle = (day: number) => {
@@ -92,141 +126,584 @@ const AdminSchedule: React.FC = () => {
     };
     
     try {
-      // Simular salvamento no Firebase
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise(resolve => setTimeout(resolve, 800));
       localStorage.setItem('scheduleSettings', JSON.stringify(settings));
-      
-      const event = new CustomEvent('notification', {
-        detail: { 
-          message: 'Configurações salvas com sucesso!', 
-          type: 'success' 
-        }
-      });
-      window.dispatchEvent(event);
+      showSuccessMessage('Configurações salvas com sucesso!');
     } catch (error) {
-      const event = new CustomEvent('notification', {
-        detail: { 
-          message: 'Erro ao salvar configurações', 
-          type: 'error' 
-        }
-      });
-      window.dispatchEvent(event);
+      showSuccessMessage('Erro ao salvar configurações');
     } finally {
       setSaving(false);
     }
   };
 
-  const timeSlots = generateTimeSlots();
-
-  // Data atual formatada
-  const getCurrentDateInfo = () => {
-    const today = new Date();
-    const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-    
-    return {
-      day: today.getDate(),
-      month: months[today.getMonth()],
-      weekday: weekdays[today.getDay()],
-      full: `${weekdays[today.getDay()]}, ${today.getDate()} ${months[today.getMonth()]}`
-    };
+  // Funções responsivas
+  const getConfigGridColumns = () => {
+    if (screenWidth < 640) return '1fr';
+    if (screenWidth < 1024) return 'repeat(2, 1fr)';
+    return 'repeat(4, 1fr)';
   };
 
-  const currentDate = getCurrentDateInfo();
+  const getDaysGridColumns = () => {
+    if (screenWidth < 640) return 'repeat(2, 1fr)';
+    if (screenWidth < 768) return 'repeat(4, 1fr)';
+    return 'repeat(7, 1fr)';
+  };
+
+  const getPreviewGridColumns = () => {
+    if (screenWidth < 640) return '1fr';
+    if (screenWidth < 1024) return 'repeat(3, 1fr)';
+    return '1fr';
+  };
+
+  const getSlotsGridColumns = () => {
+    if (screenWidth < 640) return 'repeat(2, 1fr)';
+    if (screenWidth < 768) return 'repeat(3, 1fr)';
+    if (screenWidth < 1024) return 'repeat(4, 1fr)';
+    return 'repeat(3, 1fr)';
+  };
+
+  const timeSlots = generateTimeSlots();
+  const currentDate = getCurrentDate();
+
+  if (!isAdmin && !isLoading) {
+    return null;
+  }
 
   return (
-    <div className="admin-schedule">
-      <AdminSidebar />
+    <div className="admin-schedule" style={{ 
+      display: 'flex', 
+      minHeight: '100vh', 
+      backgroundColor: '#fafafa',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    }}>
+      <AdminSidebar 
+        onMobileClose={() => setSidebarOpen(!sidebarOpen)}
+        isMobileOpen={sidebarOpen}
+      />
       
-      <div className="admin-content">
-        <div className="content-header">
-          <div className="header-main">
-            <h1>Configurar Horários</h1>
-            <p>Defina horários de funcionamento e bloqueie datas especiais</p>
+      <div 
+        className="admin-content"
+        style={{
+          flex: 1,
+          marginLeft: isMobile ? 0 : '260px',
+          width: isMobile ? '100%' : 'calc(100% - 260px)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          minHeight: '100vh',
+          position: 'relative',
+        }}
+      >
+        {/* Mobile Header */}
+        {isMobile && (
+          <div 
+            className="mobile-header"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 100,
+              background: 'white',
+              padding: '1rem',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <button 
+              className="mobile-menu-btn"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '0.5rem',
+                cursor: 'pointer',
+                color: '#3b82f6',
+                fontSize: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#eff6ff';
+                e.currentTarget.style.borderColor = '#3b82f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
+            >
+              <i className="fas fa-bars"></i>
+            </button>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div 
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                }}
+              >
+                <i className="fas fa-clock"></i>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>Horários</span>
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>LuckPet</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <main 
+          className="schedule-main"
+          style={{
+            padding: isMobile ? 'calc(1.5rem + 72px) 1rem 1rem 1rem' : '2rem 2.5rem',
+            maxWidth: '1400px',
+            margin: '0 auto',
+            width: '100%',
+          }}
+        >
+          {/* Header */}
+          <div className="dashboard-header" style={{ marginBottom: '2rem' }}>
+            <div 
+              className="header-content"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '1.5rem',
+                flexDirection: isMobile ? 'column' : 'row',
+              }}
+            >
+              <div className="greeting-section">
+                <h1 style={{ 
+                  margin: '0 0 0.5rem 0', 
+                  fontSize: isMobile ? '1.75rem' : '2rem', 
+                  fontWeight: 700, 
+                  color: '#111827',
+                  lineHeight: 1.2 
+                }}>Configurar Horários</h1>
+                <p style={{ 
+                  margin: 0, 
+                  color: '#6b7280', 
+                  fontSize: isMobile ? '0.9375rem' : '1rem',
+                  lineHeight: 1.5
+                }}>Gerencie horários e datas de funcionamento</p>
+              </div>
+              
+              <div 
+                className="header-actions"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  width: isMobile ? '100%' : 'auto',
+                }}
+              >
+                <div 
+                  className="date-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.875rem 1rem',
+                    background: 'white',
+                    borderRadius: '10px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid #e5e7eb',
+                    width: isMobile ? '100%' : 'auto',
+                    minWidth: isMobile ? 'auto' : '180px',
+                  }}
+                >
+                  <div 
+                    className="date-icon"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '1rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i className="fas fa-clock"></i>
+                  </div>
+                  <div className="date-info">
+                    <div style={{ 
+                      fontSize: '0.75rem', 
+                      fontWeight: 600, 
+                      color: '#6b7280', 
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      marginBottom: '2px'
+                    }}>{currentDate.weekday}</div>
+                    <div 
+                      className="date-display"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: '0.25rem',
+                      }}
+                    >
+                      <span style={{ 
+                        fontSize: '1.125rem', 
+                        fontWeight: 700, 
+                        color: '#111827',
+                        lineHeight: 1 
+                      }}>{currentDate.day}</span>
+                      <span style={{ 
+                        fontSize: '0.75rem', 
+                        color: '#6b7280', 
+                        fontWeight: 500 
+                      }}>{currentDate.month} {currentDate.year}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <button 
+                  className={`save-btn ${saving ? 'saving' : ''}`}
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    background: saving ? '#6b7280' : '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s',
+                    width: isMobile ? '100%' : 'auto',
+                    opacity: saving ? 0.6 : 1,
+                    fontSize: '0.9375rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!saving) {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.2)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!saving) {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  {saving ? (
+                    <>
+                      <div 
+                        className="btn-spinner"
+                        style={{
+                          width: '1rem',
+                          height: '1rem',
+                          border: '2px solid rgba(255, 255, 255, 0.3)',
+                          borderTopColor: 'white',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite',
+                        }}
+                      ></div>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-save"></i>
+                      <span>Salvar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
           
-          <div className="header-actions">
-            <div className="date-badge">
-              <i className="fas fa-calendar-day"></i>
-              <span>{currentDate.full}</span>
-            </div>
-            
-            <button 
-              className={`save-btn ${saving ? 'saving' : ''}`}
-              onClick={handleSaveSettings}
-              disabled={saving}
-              aria-label="Salvar configurações"
+          {/* Configurações de Horário */}
+          <section 
+            className="config-section"
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '1.5rem',
+              border: '1px solid #f3f4f6',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            }}
+          >
+            <div 
+              className="section-header"
+              style={{
+                marginBottom: '1.25rem',
+              }}
             >
-              {saving ? (
-                <>
-                  <i className="fas fa-spinner fa-spin"></i>
-                  <span>Salvando...</span>
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-save"></i>
-                  <span>Salvar Configurações</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div className="schedule-sections">
-          {/* Configurações Básicas */}
-          <div className="config-section">
-            <div className="section-header">
-              <h2>
-                <i className="fas fa-clock"></i>
+              <h2 
+                className="section-title"
+                style={{
+                  margin: '0 0 0.375rem 0',
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: '#111827',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <i className="fas fa-clock" style={{ color: '#3b82f6' }}></i>
                 Horários de Funcionamento
               </h2>
+              <p style={{ 
+                margin: 0,
+                color: '#6b7280',
+                fontSize: '0.875rem',
+              }}>
+                Defina os horários de atendimento da clínica
+              </p>
             </div>
             
-            <div className="config-grid">
-              <div className="config-item">
-                <label htmlFor="openingTime">
-                  <i className="far fa-sun"></i>
-                  Horário de Abertura
-                </label>
-                <div className="time-input-wrapper">
+            <div 
+              className="config-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: getConfigGridColumns(),
+                gap: '0.875rem',
+              }}
+            >
+              <div 
+                className="config-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                  background: '#f9fafb',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e5e7eb',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.background = '#eff6ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.background = '#f9fafb';
+                }}
+              >
+                <div 
+                  className="config-icon"
+                  style={{
+                    width: '2.25rem',
+                    height: '2.25rem',
+                    background: '#3b82f6',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  <i className="fas fa-door-open"></i>
+                </div>
+                <div className="config-content">
+                  <label style={{ 
+                    display: 'block',
+                    marginBottom: '0.375rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                  }}>Abertura</label>
                   <input
-                    id="openingTime"
                     type="time"
                     value={workingHours.openingTime}
                     onChange={(e) => handleTimeChange('openingTime', e.target.value)}
-                    aria-label="Horário de abertura"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      color: '#1a1a1a',
+                      background: 'white',
+                      transition: 'all 0.2s',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   />
                 </div>
               </div>
               
-              <div className="config-item">
-                <label htmlFor="closingTime">
-                  <i className="far fa-moon"></i>
-                  Horário de Fechamento
-                </label>
-                <div className="time-input-wrapper">
+              <div 
+                className="config-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                  background: '#f9fafb',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e5e7eb',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.background = '#eff6ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.background = '#f9fafb';
+                }}
+              >
+                <div 
+                  className="config-icon"
+                  style={{
+                    width: '2.25rem',
+                    height: '2.25rem',
+                    background: '#3b82f6',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  <i className="fas fa-door-closed"></i>
+                </div>
+                <div className="config-content">
+                  <label style={{ 
+                    display: 'block',
+                    marginBottom: '0.375rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                  }}>Fechamento</label>
                   <input
-                    id="closingTime"
                     type="time"
                     value={workingHours.closingTime}
                     onChange={(e) => handleTimeChange('closingTime', e.target.value)}
-                    aria-label="Horário de fechamento"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      color: '#1a1a1a',
+                      background: 'white',
+                      transition: 'all 0.2s',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   />
                 </div>
               </div>
               
-              <div className="config-item">
-                <label htmlFor="slotDuration">
+              <div 
+                className="config-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                  background: '#f9fafb',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e5e7eb',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.background = '#eff6ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.background = '#f9fafb';
+                }}
+              >
+                <div 
+                  className="config-icon"
+                  style={{
+                    width: '2.25rem',
+                    height: '2.25rem',
+                    background: '#3b82f6',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    flexShrink: 0,
+                  }}
+                >
                   <i className="fas fa-hourglass-half"></i>
-                  Duração do Horário
-                </label>
-                <div className="select-wrapper">
+                </div>
+                <div className="config-content">
+                  <label style={{ 
+                    display: 'block',
+                    marginBottom: '0.375rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                  }}>Duração do Horário</label>
                   <select
-                    id="slotDuration"
                     value={workingHours.slotDuration}
                     onChange={(e) => handleTimeChange('slotDuration', parseInt(e.target.value))}
-                    aria-label="Duração dos horários"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      color: '#1a1a1a',
+                      background: 'white',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   >
                     <option value="15">15 minutos</option>
                     <option value="30">30 minutos</option>
@@ -236,17 +713,75 @@ const AdminSchedule: React.FC = () => {
                 </div>
               </div>
               
-              <div className="config-item">
-                <label htmlFor="maxSlots">
+              <div 
+                className="config-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                  background: '#f9fafb',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e5e7eb',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.background = '#eff6ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.background = '#f9fafb';
+                }}
+              >
+                <div 
+                  className="config-icon"
+                  style={{
+                    width: '2.25rem',
+                    height: '2.25rem',
+                    background: '#3b82f6',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    flexShrink: 0,
+                  }}
+                >
                   <i className="fas fa-users"></i>
-                  Agendamentos por Horário
-                </label>
-                <div className="select-wrapper">
+                </div>
+                <div className="config-content">
+                  <label style={{ 
+                    display: 'block',
+                    marginBottom: '0.375rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                  }}>Agendamentos por Horário</label>
                   <select
-                    id="maxSlots"
                     value={workingHours.maxSlotsPerTime}
                     onChange={(e) => handleTimeChange('maxSlotsPerTime', parseInt(e.target.value))}
-                    aria-label="Agendamentos por horário"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      color: '#1a1a1a',
+                      background: 'white',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   >
                     <option value="1">1 agendamento</option>
                     <option value="2">2 agendamentos</option>
@@ -256,82 +791,253 @@ const AdminSchedule: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
           
           {/* Dias de Funcionamento */}
-          <div className="config-section">
-            <div className="section-header">
-              <h2>
-                <i className="fas fa-calendar-week"></i>
+          <section 
+            className="config-section"
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '1.5rem',
+              border: '1px solid #f3f4f6',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            }}
+          >
+            <div 
+              className="section-header"
+              style={{
+                marginBottom: '1.25rem',
+              }}
+            >
+              <h2 
+                className="section-title"
+                style={{
+                  margin: '0 0 0.375rem 0',
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: '#111827',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <i className="fas fa-calendar-week" style={{ color: '#3b82f6' }}></i>
                 Dias de Funcionamento
               </h2>
+              <p style={{ 
+                margin: 0,
+                color: '#6b7280',
+                fontSize: '0.875rem',
+              }}>
+                Selecione os dias da semana com atendimento
+              </p>
             </div>
             
-            <div className="days-selection">
-              <p className="section-description">
-                Selecione os dias da semana em que o pet shop estará aberto:
-              </p>
-              
-              <div className="days-grid">
+            <div className="days-section">
+              <div 
+                className="days-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: getDaysGridColumns(),
+                  gap: '0.5rem',
+                  marginBottom: '1rem',
+                }}
+              >
                 {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                  <button
+                  <div
                     key={day}
-                    className={`day-btn ${workingDays.includes(day) ? 'active' : ''}`}
+                    className={`day-item ${workingDays.includes(day) ? 'active' : ''}`}
                     onClick={() => handleWorkingDayToggle(day)}
-                    type="button"
-                    aria-label={`${workingDays.includes(day) ? 'Remover' : 'Adicionar'} ${getFullDayName(day)}`}
-                    title={getFullDayName(day)}
+                    style={{
+                      padding: '0.75rem 0.5rem',
+                      background: workingDays.includes(day) ? '#3b82f6' : '#f9fafb',
+                      border: `1px solid ${workingDays.includes(day) ? '#3b82f6' : '#e5e7eb'}`,
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      color: workingDays.includes(day) ? 'white' : '#1a1a1a',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!workingDays.includes(day)) {
+                        e.currentTarget.style.borderColor = '#3b82f6';
+                        e.currentTarget.style.background = '#eff6ff';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!workingDays.includes(day)) {
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                        e.currentTarget.style.background = '#f9fafb';
+                      }
+                    }}
                   >
-                    <div className="day-name">{getDayName(day)}</div>
-                    <div className="day-status">
-                      {workingDays.includes(day) ? (
-                        <i className="fas fa-check"></i>
-                      ) : (
-                        <i className="fas fa-times"></i>
-                      )}
+                    <div style={{ 
+                      fontSize: '0.875rem', 
+                      fontWeight: 500 
+                    }}>
+                      {getDayName(day)}
                     </div>
-                  </button>
+                    <div style={{ fontSize: '0.75rem' }}>
+                      {workingDays.includes(day) && <i className="fas fa-check"></i>}
+                    </div>
+                  </div>
                 ))}
               </div>
               
-              <div className="selected-days-info">
-                <span className="label">Dias selecionados:</span>
-                <span className="value">
-                  {workingDays.map(day => getDayName(day)).join(', ') || 'Nenhum'}
-                </span>
+              <div 
+                className="days-summary"
+                style={{
+                  padding: '0.875rem',
+                  background: '#eff6ff',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #bfdbfe',
+                }}
+              >
+                <div 
+                  className="summary-content"
+                  style={{
+                    display: 'flex',
+                    flexDirection: screenWidth < 768 ? 'column' : 'row',
+                    gap: screenWidth < 768 ? '0.25rem' : '0.5rem',
+                  }}
+                >
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    fontWeight: 500, 
+                    color: '#0369a1',
+                    flexShrink: 0,
+                  }}>
+                    Dias selecionados:
+                  </span>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    color: '#1a1a1a', 
+                    lineHeight: 1.4 
+                  }}>
+                    {workingDays.length > 0 
+                      ? workingDays.map(day => getFullDayName(day)).join(', ')
+                      : 'Nenhum dia selecionado'
+                    }
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
           
           {/* Datas Bloqueadas */}
-          <div className="config-section">
-            <div className="section-header">
-              <h2>
-                <i className="fas fa-calendar-times"></i>
+          <section 
+            className="config-section"
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '1.5rem',
+              border: '1px solid #f3f4f6',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            }}
+          >
+            <div 
+              className="section-header"
+              style={{
+                marginBottom: '1.25rem',
+              }}
+            >
+              <h2 
+                className="section-title"
+                style={{
+                  margin: '0 0 0.375rem 0',
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: '#111827',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <i className="fas fa-calendar-times" style={{ color: '#3b82f6' }}></i>
                 Datas Bloqueadas
               </h2>
+              <p style={{ 
+                margin: 0,
+                color: '#6b7280',
+                fontSize: '0.875rem',
+              }}>
+                Adicione datas em que não haverá atendimento
+              </p>
             </div>
             
             <div className="blocked-dates-section">
-              <p className="section-description">
-                Adicione datas especiais em que o pet shop não funcionará:
-              </p>
-              
-              <div className="add-date-form">
-                <div className="date-input-wrapper">
+              <div 
+                className="add-date-container"
+                style={{
+                  display: 'flex',
+                  flexDirection: screenWidth < 640 ? 'column' : 'row',
+                  gap: '0.75rem',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <div style={{ flex: 1 }}>
                   <input
                     type="date"
                     value={newBlockedDate}
                     onChange={(e) => setNewBlockedDate(e.target.value)}
-                    aria-label="Selecione uma data para bloquear"
                     min={new Date().toISOString().split('T')[0]}
+                    placeholder="Selecione uma data"
+                    style={{
+                      width: '100%',
+                      padding: '0.5625rem 0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      color: '#1a1a1a',
+                      background: 'white',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   />
                 </div>
                 <button 
                   onClick={handleAddBlockedDate}
                   className="add-btn"
                   disabled={!newBlockedDate}
-                  aria-label="Adicionar data bloqueada"
+                  style={{
+                    padding: '0.5625rem 1rem',
+                    background: !newBlockedDate ? '#9ca3af' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontWeight: 500,
+                    cursor: !newBlockedDate ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap',
+                    opacity: !newBlockedDate ? 0.5 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (newBlockedDate) {
+                      e.currentTarget.style.background = '#2563eb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (newBlockedDate) {
+                      e.currentTarget.style.background = '#3b82f6';
+                    }
+                  }}
                 >
                   <i className="fas fa-plus"></i>
                   <span>Adicionar</span>
@@ -339,730 +1045,726 @@ const AdminSchedule: React.FC = () => {
               </div>
               
               {blockedDates.length === 0 ? (
-                <div className="empty-state">
-                  <i className="fas fa-calendar-check"></i>
-                  <p>Nenhuma data bloqueada</p>
+                <div 
+                  className="empty-state"
+                  style={{
+                    textAlign: 'center',
+                    padding: '2rem 1rem',
+                    color: '#9ca3af',
+                  }}
+                >
+                  <i 
+                    className="fas fa-calendar-check"
+                    style={{ 
+                      fontSize: '1.5rem', 
+                      marginBottom: '0.5rem', 
+                      opacity: 0.5 
+                    }}
+                  ></i>
+                  <p style={{ margin: 0, fontSize: '0.875rem' }}>
+                    Nenhuma data bloqueada
+                  </p>
                 </div>
               ) : (
-                <div className="dates-list">
-                  <div className="list-header">
+                <div 
+                  className="dates-list"
+                  style={{
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div 
+                    className="list-header"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.75rem 1rem',
+                      background: '#f3f4f6',
+                      borderBottom: '1px solid #e5e7eb',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    }}
+                  >
                     <span>Datas bloqueadas ({blockedDates.length})</span>
+                    <button 
+                      className="clear-btn"
+                      onClick={() => setBlockedDates([])}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'none';
+                      }}
+                    >
+                      Limpar tudo
+                    </button>
                   </div>
-                  <div className="dates-scroll">
-                    {blockedDates.map((date) => (
-                      <div key={date} className="date-item">
-                        <div className="date-info">
-                          <i className="far fa-calendar-times"></i>
-                          <div className="date-details">
-                            <span className="date-display">
-                              {new Date(date).toLocaleDateString('pt-BR', {
-                                weekday: 'short',
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                            </span>
-                            <span className="date-relative">
-                              {new Date(date).toDateString() === new Date().toDateString() 
-                                ? 'Hoje' 
-                                : new Date(date) > new Date() 
-                                  ? 'Futuro' 
-                                  : 'Passado'}
-                            </span>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => handleRemoveBlockedDate(date)}
-                          className="remove-btn"
-                          aria-label="Remover data bloqueada"
+                  
+                  <div 
+                    className="dates-container"
+                    style={{
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {blockedDates.map((date) => {
+                      const dateObj = new Date(date);
+                      const isToday = dateObj.toDateString() === new Date().toDateString();
+                      const isFuture = dateObj > new Date();
+                      
+                      return (
+                        <div 
+                          key={date} 
+                          className="date-item"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.75rem 1rem',
+                            borderBottom: '1px solid #e5e7eb',
+                          }}
                         >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    ))}
+                          <div 
+                            className="date-info"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.75rem',
+                            }}
+                          >
+                            <i 
+                              className="fas fa-calendar"
+                              style={{ 
+                                color: '#6b7280', 
+                                fontSize: '0.875rem' 
+                              }}
+                            ></i>
+                            <div 
+                              className="date-details"
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                              }}
+                            >
+                              <div 
+                                className="date-display"
+                                style={{
+                                  fontSize: '0.875rem',
+                                  color: '#1a1a1a',
+                                }}
+                              >
+                                {dateObj.toLocaleDateString('pt-BR', {
+                                  weekday: 'short',
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </div>
+                              <div 
+                                className="date-status"
+                                style={{
+                                  fontSize: '0.75rem',
+                                  color: '#6b7280',
+                                  marginTop: '0.125rem',
+                                }}
+                              >
+                                {isToday ? 'Hoje' : isFuture ? 'Futuro' : 'Passado'}
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => handleRemoveBlockedDate(date)}
+                            className="remove-btn"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#6b7280',
+                              cursor: 'pointer',
+                              padding: '0.25rem',
+                              borderRadius: '0.25rem',
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                              e.currentTarget.style.color = '#ef4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'none';
+                              e.currentTarget.style.color = '#6b7280';
+                            }}
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          </section>
           
           {/* Preview do Horário */}
-          <div className="config-section preview-section">
-            <div className="section-header">
-              <h2>
-                <i className="fas fa-eye"></i>
+          <section 
+            className="preview-section"
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              border: '1px solid #f3f4f6',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            }}
+          >
+            <div 
+              className="section-header"
+              style={{
+                marginBottom: '1.25rem',
+              }}
+            >
+              <h2 
+                className="section-title"
+                style={{
+                  margin: '0 0 0.375rem 0',
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: '#111827',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <i className="fas fa-eye" style={{ color: '#3b82f6' }}></i>
                 Preview do Horário
               </h2>
+              <p style={{ 
+                margin: 0,
+                color: '#6b7280',
+                fontSize: '0.875rem',
+              }}>
+                Visualize as configurações aplicadas
+              </p>
             </div>
             
-            <div className="preview-content">
-              <div className="preview-summary">
-                <div className="summary-item">
-                  <i className="fas fa-door-open"></i>
-                  <div>
-                    <div className="label">Abertura</div>
-                    <div className="value">{workingHours.openingTime}</div>
+            <div 
+              className="preview-content"
+              style={{
+                display: 'flex',
+                flexDirection: screenWidth < 1024 ? 'column' : 'row',
+                gap: screenWidth < 1024 ? '1.5rem' : '2rem',
+              }}
+            >
+              <div 
+                className="preview-summary"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: getPreviewGridColumns(),
+                  gap: '0.875rem',
+                  width: '100%',
+                }}
+              >
+                <div 
+                  className="summary-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '1rem',
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                  }}
+                >
+                  <div 
+                    className="card-icon"
+                    style={{
+                      width: '2.25rem',
+                      height: '2.25rem',
+                      background: '#3b82f6',
+                      borderRadius: '0.375rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i className="fas fa-clock"></i>
+                  </div>
+                  <div className="card-content">
+                    <div 
+                      className="card-value"
+                      style={{
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        marginBottom: '0.125rem',
+                      }}
+                    >
+                      {workingHours.openingTime} - {workingHours.closingTime}
+                    </div>
+                    <div 
+                      className="card-label"
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Horário de funcionamento
+                    </div>
                   </div>
                 </div>
                 
-                <div className="summary-item">
-                  <i className="fas fa-door-closed"></i>
-                  <div>
-                    <div className="label">Fechamento</div>
-                    <div className="value">{workingHours.closingTime}</div>
+                <div 
+                  className="summary-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '1rem',
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                  }}
+                >
+                  <div 
+                    className="card-icon"
+                    style={{
+                      width: '2.25rem',
+                      height: '2.25rem',
+                      background: '#3b82f6',
+                      borderRadius: '0.375rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i className="fas fa-calendar-alt"></i>
+                  </div>
+                  <div className="card-content">
+                    <div 
+                      className="card-value"
+                      style={{
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        marginBottom: '0.125rem',
+                      }}
+                    >
+                      {workingDays.length} dias
+                    </div>
+                    <div 
+                      className="card-label"
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Dias ativos na semana
+                    </div>
                   </div>
                 </div>
                 
-                <div className="summary-item">
-                  <i className="fas fa-hourglass-end"></i>
-                  <div>
-                    <div className="label">Duração</div>
-                    <div className="value">{workingHours.slotDuration} min</div>
+                <div 
+                  className="summary-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '1rem',
+                    background: '#f9fafb',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                  }}
+                >
+                  <div 
+                    className="card-icon"
+                    style={{
+                      width: '2.25rem',
+                      height: '2.25rem',
+                      background: '#3b82f6',
+                      borderRadius: '0.375rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i className="fas fa-stopwatch"></i>
                   </div>
-                </div>
-                
-                <div className="summary-item">
-                  <i className="fas fa-calendar-alt"></i>
-                  <div>
-                    <div className="label">Dias</div>
-                    <div className="value">{workingDays.length} dias</div>
+                  <div className="card-content">
+                    <div 
+                      className="card-value"
+                      style={{
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        marginBottom: '0.125rem',
+                      }}
+                    >
+                      {workingHours.slotDuration} min
+                    </div>
+                    <div 
+                      className="card-label"
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Duração por horário
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <div className="time-slots-preview">
-                <h3>Horários Disponíveis (Exemplo)</h3>
-                <div className="slots-info">
-                  <span>{timeSlots.length} horários disponíveis</span>
-                  <span className="slots-count">
-                    <i className="fas fa-user-clock"></i>
-                    {workingHours.maxSlotsPerTime} por horário
-                  </span>
+              <div 
+                className="preview-slots"
+                style={{
+                  padding: '1.25rem',
+                  background: '#f9fafb',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e5e7eb',
+                  width: '100%',
+                }}
+              >
+                <div 
+                  className="slots-header"
+                  style={{
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <h3 style={{ 
+                    margin: '0 0 0.5rem 0', 
+                    fontSize: '1rem', 
+                    fontWeight: 600, 
+                    color: '#1a1a1a' 
+                  }}>
+                    Horários Disponíveis
+                  </h3>
+                  <div 
+                    className="slots-stats"
+                    style={{
+                      display: 'flex',
+                      flexDirection: screenWidth < 640 ? 'column' : 'row',
+                      gap: screenWidth < 640 ? '0.375rem' : '1rem',
+                      fontSize: '0.75rem',
+                      color: '#6b7280',
+                    }}
+                  >
+                    <span className="slots-count">{timeSlots.length} horários</span>
+                    <span 
+                      className="slots-capacity"
+                      style={{
+                        background: '#dbeafe',
+                        color: '#1e40af',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontWeight: 500,
+                        display: 'inline-block',
+                      }}
+                    >
+                      {workingHours.maxSlotsPerTime} por horário
+                    </span>
+                  </div>
                 </div>
                 
-                <div className="slots-grid">
+                <div 
+                  className="slots-grid"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: getSlotsGridColumns(),
+                    gap: '0.5rem',
+                    marginBottom: '1rem',
+                  }}
+                >
                   {timeSlots.slice(0, 12).map((time) => (
-                    <div key={time} className="time-slot" title={`Horário: ${time}`}>
+                    <div 
+                      key={time} 
+                      className="slot-item"
+                      style={{
+                        padding: '0.5rem',
+                        background: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '0.375rem',
+                        textAlign: 'center',
+                        fontSize: '0.875rem',
+                        color: '#1a1a1a',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#3b82f6';
+                        e.currentTarget.style.background = '#eff6ff';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                        e.currentTarget.style.background = 'white';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
                       {time}
                     </div>
                   ))}
                 </div>
                 
                 {timeSlots.length > 12 && (
-                  <div className="more-slots">
-                    <i className="fas fa-ellipsis-h"></i>
+                  <div 
+                    className="more-slots"
+                    style={{
+                      textAlign: 'center',
+                      color: '#3b82f6',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      padding: '0.5rem',
+                      background: '#dbeafe',
+                      borderRadius: '0.25rem',
+                    }}
+                  >
                     + {timeSlots.length - 12} horários disponíveis
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
       </div>
       
+      {/* Notificação de Sucesso */}
+      {showSuccess && (
+        <div 
+          className="success-notification"
+          style={{
+            position: 'fixed',
+            bottom: '1rem',
+            left: '1rem',
+            right: '1rem',
+            background: 'white',
+            borderRadius: '0.5rem',
+            padding: '0.875rem 1rem',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #bbf7d0',
+            animation: 'slideIn 0.3s ease',
+            zIndex: 1000,
+          }}
+        >
+          <div 
+            className="notification-content"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+            }}
+          >
+            <i 
+              className="fas fa-check-circle"
+              style={{ color: '#10b981', fontSize: '1rem' }}
+            ></i>
+            <span style={{ fontWeight: 500, color: '#065f46', fontSize: '0.875rem' }}>
+              {successMessage}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <style>{`
-        .admin-schedule {
-          display: flex;
-          min-height: 100vh;
-          width: 100%;
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
         
-        .admin-content {
-          flex: 1;
-          margin-left: 250px;
-          padding: 24px;
-          background: #f8fafc;
-          min-height: 100vh;
-          width: calc(100% - 250px);
-        }
-        
-        .content-header {
-          margin-bottom: 24px;
-        }
-        
-        .header-main h1 {
-          margin: 0 0 8px 0;
-          color: #1f2937;
-          font-size: 28px;
-          font-weight: 700;
-        }
-        
-        .header-main p {
-          margin: 0;
-          color: #6b7280;
-          font-size: 14px;
-        }
-        
-        .header-actions {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 16px;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
-        
-        .date-badge {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          background: white;
-          border-radius: 10px;
-          color: #374151;
-          font-weight: 500;
-          font-size: 14px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-          border: 1px solid #e5e7eb;
-        }
-        
-        .date-badge i {
-          color: #8b5cf6;
-        }
-        
-        .save-btn {
-          background: #8b5cf6;
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.2s;
-          font-size: 14px;
-        }
-        
-        .save-btn:hover:not(:disabled) {
-          background: #7c3aed;
-          transform: translateY(-1px);
-        }
-        
-        .save-btn:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-        
-        .save-btn.saving {
-          background: #6b7280;
-        }
-        
-        .schedule-sections {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 24px;
-        }
-        
-        .config-section {
-          background: white;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-          border: 1px solid #e5e7eb;
-        }
-        
-        .section-header {
-          margin-bottom: 20px;
-        }
-        
-        .section-header h2 {
-          margin: 0;
-          color: #374151;
-          font-size: 18px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        
-        .section-header i {
-          color: #8b5cf6;
-          font-size: 16px;
-        }
-        
-        .section-description {
-          margin: 0 0 16px 0;
-          color: #6b7280;
-          font-size: 14px;
-          line-height: 1.5;
-        }
-        
-        .config-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 16px;
-        }
-        
-        .config-item label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-          font-weight: 600;
-          color: #374151;
-          font-size: 14px;
-        }
-        
-        .config-item label i {
-          color: #8b5cf6;
-          font-size: 13px;
-        }
-        
-        .time-input-wrapper,
-        .select-wrapper,
-        .date-input-wrapper {
-          width: 100%;
-        }
-        
-        .time-input-wrapper input,
-        .select-wrapper select,
-        .date-input-wrapper input {
-          width: 100%;
-          padding: 10px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          font-size: 14px;
-          color: #1f2937;
-          background: white;
-          transition: all 0.2s;
-        }
-        
-        .time-input-wrapper input:focus,
-        .select-wrapper select:focus,
-        .date-input-wrapper input:focus {
-          outline: none;
-          border-color: #8b5cf6;
-          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-        }
-        
-        /* Dias de Funcionamento */
-        .days-grid {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 8px;
-          margin-bottom: 16px;
-        }
-        
-        .day-btn {
-          padding: 12px 8px;
-          border: 2px solid #e5e7eb;
-          border-radius: 10px;
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-        }
-        
-        .day-btn:hover {
-          border-color: #8b5cf6;
-          background: #f5f3ff;
-        }
-        
-        .day-btn.active {
-          background: #8b5cf6;
-          border-color: #8b5cf6;
-          color: white;
-        }
-        
-        .day-name {
-          font-weight: 600;
-          font-size: 13px;
-        }
-        
-        .day-status {
-          font-size: 11px;
-        }
-        
-        .selected-days-info {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px;
-          background: #f9fafb;
-          border-radius: 8px;
-          font-size: 14px;
-        }
-        
-        .selected-days-info .label {
-          font-weight: 600;
-          color: #374151;
-        }
-        
-        .selected-days-info .value {
-          color: #8b5cf6;
-          font-weight: 500;
-          max-width: 200px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        
-        /* Datas Bloqueadas */
-        .add-date-form {
-          display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-        
-        .add-btn {
-          background: #8b5cf6;
-          color: white;
-          border: none;
-          padding: 10px 16px;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.2s;
-          font-size: 14px;
-        }
-        
-        .add-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        
-        .add-btn:not(:disabled):hover {
-          background: #7c3aed;
-        }
-        
-        .empty-state {
-          text-align: center;
-          padding: 32px 20px;
-          color: #9ca3af;
-        }
-        
-        .empty-state i {
-          font-size: 40px;
-          margin-bottom: 12px;
-          color: #d1d5db;
-        }
-        
-        .empty-state p {
-          margin: 0;
-          font-size: 14px;
-        }
-        
-        .dates-list {
-          background: #f9fafb;
-          border-radius: 8px;
-          overflow: hidden;
-          border: 1px solid #e5e7eb;
-        }
-        
-        .list-header {
-          padding: 12px 16px;
-          background: #f3f4f6;
-          font-weight: 600;
-          color: #374151;
-          font-size: 14px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .dates-scroll {
-          max-height: 200px;
-          overflow-y: auto;
-        }
-        
-        .date-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 16px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .date-item:last-child {
-          border-bottom: none;
-        }
-        
-        .date-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        
-        .date-info i {
-          color: #ef4444;
-          font-size: 16px;
-        }
-        
-        .date-details {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .date-display {
-          color: #4b5563;
-          font-size: 14px;
-          font-weight: 500;
-        }
-        
-        .date-relative {
-          font-size: 11px;
-          color: #9ca3af;
-          margin-top: 2px;
-        }
-        
-        .remove-btn {
-          background: none;
-          border: none;
-          color: #ef4444;
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 6px;
-          transition: background 0.2s;
-        }
-        
-        .remove-btn:hover {
-          background: #fee2e2;
-        }
-        
-        /* Preview Section */
-        .preview-section {
-          grid-column: 1 / -1;
-        }
-        
-        .preview-content {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-        }
-        
-        .preview-summary {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-        
-        .summary-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px;
-          background: #f9fafb;
-          border-radius: 10px;
-          border: 1px solid #e5e7eb;
-        }
-        
-        .summary-item i {
-          font-size: 20px;
-          color: #8b5cf6;
-        }
-        
-        .summary-item .label {
-          font-size: 12px;
-          color: #6b7280;
-          margin-bottom: 4px;
-        }
-        
-        .summary-item .value {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-        
-        .time-slots-preview h3 {
-          margin: 0 0 16px 0;
-          color: #374151;
-          font-size: 16px;
-          font-weight: 600;
-        }
-        
-        .slots-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-          font-size: 14px;
-          color: #6b7280;
-        }
-        
-        .slots-count {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: #d1fae5;
-          color: #065f46;
-          padding: 4px 10px;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        
-        .slots-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-          gap: 8px;
-        }
-        
-        .time-slot {
-          padding: 10px 8px;
-          background: #d1fae5;
-          color: #065f46;
-          border-radius: 8px;
-          text-align: center;
-          font-size: 13px;
-          font-weight: 600;
-          transition: transform 0.2s;
-        }
-        
-        .time-slot:hover {
-          transform: translateY(-2px);
-        }
-        
-        .more-slots {
-          margin-top: 16px;
-          text-align: center;
-          color: #8b5cf6;
-          font-weight: 600;
-          font-size: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 8px;
-        }
-        
-        .more-slots i {
-          font-size: 12px;
-        }
-        
-        /* ===== RESPONSIVIDADE ===== */
-        
-        /* Tablet (1024px) */
-        @media (max-width: 1024px) {
-          .admin-content {
-            margin-left: 220px;
-            width: calc(100% - 220px);
-            padding: 20px;
+        @keyframes slideIn {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
           }
-          
-          .preview-content {
-            grid-template-columns: 1fr;
-            gap: 20px;
-          }
-          
-          .preview-summary {
-            grid-template-columns: repeat(4, 1fr);
+          to {
+            transform: translateY(0);
+            opacity: 1;
           }
         }
         
-        /* Mobile Landscape (768px) */
         @media (max-width: 768px) {
-          .admin-content {
-            margin-left: 60px;
-            width: calc(100% - 60px);
-            padding: 16px;
+          .mobile-header {
+            display: flex !important;
           }
           
-          .header-main h1 {
-            font-size: 24px;
-          }
-          
-          .header-actions {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          
-          .date-badge {
-            justify-content: center;
-          }
-          
-          .save-btn {
-            justify-content: center;
-          }
-          
-          .days-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
-          
-          .add-date-form {
-            grid-template-columns: 1fr;
-          }
-          
-          .preview-summary {
-            grid-template-columns: repeat(2, 1fr);
+          .schedule-main {
+            padding-top: calc(1.5rem + 72px) !important;
           }
         }
         
-        /* Mobile Portrait (480px) */
+        @media (min-width: 769px) {
+          .mobile-header {
+            display: none !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .schedule-main {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }
+          
+          .config-section,
+          .preview-section {
+            padding: 1rem !important;
+          }
+        }
+        
         @media (max-width: 480px) {
-          .admin-content {
-            margin-left: 0;
-            width: 100%;
-            padding: 16px;
-            padding-top: 80px;
+          .schedule-main {
+            padding: calc(1rem + 72px) 0.75rem 0.75rem 0.75rem !important;
           }
           
-          .header-main h1 {
-            font-size: 20px;
+          .date-card {
+            flex-direction: column !important;
+            text-align: center !important;
+            gap: 0.5rem !important;
+            padding: 0.75rem !important;
           }
           
-          .header-main p {
-            font-size: 13px;
+          .date-display {
+            justify-content: center !important;
           }
           
-          .section-header h2 {
-            font-size: 16px;
+          .days-summary {
+            padding: 0.75rem !important;
           }
           
+          .summary-content {
+            align-items: stretch !important;
+          }
+          
+          .save-btn span,
+          .add-btn span {
+            font-size: 0.75rem !important;
+          }
+          
+          .config-content input,
+          .config-content select,
+          input[type="date"] {
+            font-size: 0.75rem !important;
+            padding: 0.5rem 0.625rem !important;
+          }
+          
+          .slot-item {
+            font-size: 0.75rem !important;
+            padding: 0.375rem !important;
+          }
+        }
+        
+        @media (max-width: 320px) {
+          .schedule-main {
+            padding: calc(0.75rem + 72px) 0.5rem 0.5rem 0.5rem !important;
+          }
+          
+          .greeting-section h1 {
+            font-size: 1.5rem !important;
+          }
+          
+          .config-section,
+          .preview-section {
+            padding: 0.75rem !important;
+          }
+          
+          .config-card {
+            padding: 0.75rem !important;
+          }
+          
+          .config-icon {
+            width: 2rem !important;
+            height: 2rem !important;
+          }
+          
+          .day-item {
+            padding: 0.5rem 0.25rem !important;
+          }
+          
+          .days-summary {
+            padding: 0.5rem !important;
+          }
+          
+          .summary-card {
+            padding: 0.75rem !important;
+          }
+          
+          .card-icon {
+            width: 2rem !important;
+            height: 2rem !important;
+          }
+          
+          .card-value {
+            font-size: 0.875rem !important;
+          }
+          
+          .preview-slots {
+            padding: 1rem !important;
+          }
+          
+          .success-notification {
+            left: 0.5rem !important;
+            right: 0.5rem !important;
+            bottom: 0.5rem !important;
+            padding: 0.75rem !important;
+          }
+        }
+        
+        @media (min-width: 641px) and (max-width: 768px) {
           .days-grid {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr) !important;
           }
           
-          .selected-days-info {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
+          .config-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1023px) {
+          .config-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
           }
           
-          .selected-days-info .value {
-            max-width: 100%;
-          }
-          
-          .preview-summary {
-            grid-template-columns: 1fr;
-          }
-          
-          .summary-item {
-            justify-content: space-between;
+          .preview-grid {
+            grid-template-columns: 1fr !important;
           }
           
           .slots-grid {
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            grid-template-columns: repeat(4, 1fr) !important;
           }
         }
         
-        /* Small Mobile (360px) */
-        @media (max-width: 360px) {
-          .admin-content {
-            padding: 12px;
-            padding-top: 70px;
+        @media (min-width: 1024px) and (max-width: 1279px) {
+          .config-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
           }
           
-          .config-section {
-            padding: 16px;
+          .preview-summary {
+            width: 40% !important;
           }
           
-          .days-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          
-          .save-btn span {
-            font-size: 13px;
-          }
-          
-          .add-btn span {
-            display: none;
+          .preview-slots {
+            width: 60% !important;
           }
         }
       `}</style>
