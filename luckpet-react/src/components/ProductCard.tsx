@@ -466,6 +466,9 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           .product-card {
             border-radius: 14px;
           }
+            #nutricao-pet {
+            padding-top: 70px;
+            }
           
           .image-container {
             height: 180px;
@@ -530,6 +533,9 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             padding: 14px;
             gap: 12px;
           }
+            #nutricao-pet {
+            padding-top: 70px;
+            }
           
           .product-name {
             font-size: 27px !important;
