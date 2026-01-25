@@ -34,7 +34,7 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
       <div className="container">
         <div className="section-header">
           <h2 className="section-title">
-           <span className="accent">Cuidado</span> Especializado para Seu Pet
+           <span className="accent">Cuidado</span> Profissional
 </h2>
 <p className="section-subtitle">
   Atendimento especializado com amor e qualidade

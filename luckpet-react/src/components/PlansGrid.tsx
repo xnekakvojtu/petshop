@@ -1,4 +1,4 @@
-// src/components/PlansGrid.tsx
+// src/components/PlansGrid.tsx - VERSÃO COM TÍTULOS GRANDES PRA CARALHO
 import React from 'react';
 
 interface Plan {
@@ -20,8 +20,10 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
     <section className="plans-section">
       <div className="container">
         <div className="section-header">
-          <h2>Saúde para seu Pet</h2>
-          <p>Planos completos para o bem-estar do seu companheiro</p>
+          {/* 🔥 TÍTULO GRANDE PRA CARALHO 🔥 */}
+          <h2 className="section-title">Saúde para seu Pet</h2>
+          {/* 🔥 SUBTÍTULO TAMBÉM GRANDE 🔥 */}
+          <p className="section-subtitle">Planos completos para o bem-estar do seu companheiro</p>
         </div>
         
         <div className="plans-grid">
@@ -40,8 +42,10 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
               )}
               
               <div className="plan-header">
-                <h3>{plan.title}</h3>
-                <p>{plan.subtitle}</p>
+                {/* 🔥 TÍTULO DO PLANO GRANDE 🔥 */}
+                <h3 className="plan-title">{plan.title}</h3>
+                {/* 🔥 SUBTÍTULO DO PLANO TAMBÉM GRANDE 🔥 */}
+                <p className="plan-subtitle">{plan.subtitle}</p>
               </div>
               
               <div className="price">
@@ -93,24 +97,29 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
           padding: 0 20px;
         }
 
-        /* HEADER */
+        /* 🔥🔥🔥 HEADER COM TÍTULOS GRANDES PRA CARALHO 🔥🔥🔥 */
         .section-header {
           text-align: center;
           margin-bottom: 50px;
         }
 
-        .section-header h2 {
-          font-size: 32px;
+        /* TÍTULO PRINCIPAL - GRANDE! */
+        .section-title {
+          font-size: 48px !important; /* 48px! ENORME! */
           color: #1f2937;
-          margin-bottom: 12px;
-          font-weight: 700;
+          margin-bottom: 16px;
+          font-weight: 800 !important; /* NEGRÃO! */
+          line-height: 1.1;
         }
 
-        .section-header p {
+        /* SUBTÍTULO - TAMBÉM GRANDE! */
+        .section-subtitle {
+          font-size: 24px !important; /* 24px! GRANDE! */
           color: #6b7280;
-          font-size: 16px;
           max-width: 500px;
           margin: 0 auto;
+          font-weight: 500;
+          line-height: 1.5;
         }
 
         /* GRID */
@@ -163,22 +172,24 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
           color: white;
         }
 
-        /* HEADER DO PLANO */
+        /* 🔥🔥🔥 HEADER DO PLANO COM TÍTULOS GRANDES 🔥🔥🔥 */
         .plan-header {
           margin-bottom: 24px;
           text-align: center;
         }
 
-        .plan-header h3 {
-          font-size: 20px;
+        /* TÍTULO DO PLANO - GRANDE! */
+        .plan-title {
+          font-size: 24px !important; /* 24px! GRANDE! */
           color: #1f2937;
           margin-bottom: 8px;
-          font-weight: 700;
+          font-weight: 700 !important;
         }
 
-        .plan-header p {
+        /* SUBTÍTULO DO PLANO - TAMBÉM GRANDE! */
+        .plan-subtitle {
           color: #6b7280;
-          font-size: 14px;
+          font-size: 16px !important; /* 16px! BEM LEGÍVEL! */
           line-height: 1.5;
         }
 
@@ -226,7 +237,7 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
 
         .feature span {
           color: #4b5563;
-          font-size: 14px;
+          font-size: 15px !important; /* Aumentado de 14px */
           line-height: 1.5;
         }
 
@@ -249,7 +260,7 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
           justify-content: center;
           gap: 10px;
           transition: all 0.2s ease;
-          font-size: 15px;
+          font-size: 16px !important; /* Aumentado de 15px */
         }
 
         .select-btn:hover {
@@ -276,7 +287,7 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
           justify-content: center;
           gap: 8px;
           color: #92400e;
-          font-size: 13px;
+          font-size: 14px !important; /* Aumentado de 13px */
           font-weight: 600;
         }
 
@@ -284,7 +295,7 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
           color: #f59e0b;
         }
 
-        /* RESPONSIVO */
+        /* 🔥🔥🔥 RESPONSIVIDADE COM TÍTULOS GRANDES 🔥🔥🔥 */
         @media (max-width: 1024px) {
           .plans-grid {
             gap: 20px;
@@ -292,6 +303,16 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
           
           .plan-card {
             padding: 24px;
+          }
+          
+          /* TÍTULO PRINCIPAL AINDA GRANDE */
+          .section-title {
+            font-size: 42px !important;
+          }
+          
+          /* SUBTÍTULO AINDA GRANDE */
+          .section-subtitle {
+            font-size: 22px !important;
           }
         }
 
@@ -302,12 +323,32 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
             margin: 0 auto;
           }
           
-          .section-header h2 {
-            font-size: 28px;
+          /* TÍTULO PRINCIPAL MOBILE - GRANDE! */
+          .section-title {
+            font-size: 36px !important; /* 36px! */
+          }
+          
+          /* SUBTÍTULO MOBILE - GRANDE! */
+          .section-subtitle {
+            font-size: 20px !important; /* 20px! */
           }
           
           .price {
             font-size: 36px;
+          }
+          
+          /* TÍTULO DO PLANO MOBILE */
+          .plan-title {
+            font-size: 22px !important; /* 22px! */
+          }
+          
+          /* SUBTÍTULO DO PLANO MOBILE */
+          .plan-subtitle {
+            font-size: 15px !important; /* 15px! */
+          }
+          
+          .feature span {
+            font-size: 14px !important;
           }
         }
 
@@ -320,12 +361,62 @@ const PlansGrid: React.FC<PlansGridProps> = ({ plans, userCredits = 0 }) => {
             padding: 20px;
           }
           
+          /* TÍTULO PRINCIPAL MOBILE PEQUENO - AINDA GRANDE! */
+          .section-title {
+            font-size: 32px !important; /* 32px! */
+          }
+          
+          /* SUBTÍTULO MOBILE PEQUENO - AINDA GRANDE! */
+          .section-subtitle {
+            font-size: 18px !important; /* 18px! */
+          }
+          
           .price {
             font-size: 32px;
           }
           
-          .section-header h2 {
-            font-size: 24px;
+          /* TÍTULO DO PLANO MOBILE PEQUENO */
+          .plan-title {
+            font-size: 20px !important; /* 20px! */
+          }
+          
+          /* SUBTÍTULO DO PLANO MOBILE PEQUENO */
+          .plan-subtitle {
+            font-size: 14px !important; /* 14px! */
+          }
+          
+          .select-btn {
+            font-size: 15px !important;
+            padding: 14px;
+          }
+        }
+
+        @media (max-width: 375px) {
+          /* TÍTULO PRINCIPAL IPHONE SE */
+          .section-title {
+            font-size: 30px !important; /* 30px! */
+          }
+          
+          /* SUBTÍTULO IPHONE SE */
+          .section-subtitle {
+            font-size: 17px !important; /* 17px! */
+          }
+          
+          /* TÍTULO DO PLANO IPHONE SE */
+          .plan-title {
+            font-size: 19px !important; /* 19px! */
+          }
+        }
+
+        @media (max-width: 320px) {
+          /* TÍTULO PRINCIPAL MÍNIMO */
+          .section-title {
+            font-size: 28px !important; /* 28px! */
+          }
+          
+          /* SUBTÍTULO MÍNIMO */
+          .section-subtitle {
+            font-size: 16px !important; /* 16px! */
           }
         }
       `}</style>

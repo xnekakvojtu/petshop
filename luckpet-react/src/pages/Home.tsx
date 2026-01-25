@@ -197,180 +197,308 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
       <PlansGrid plans={plans} userCredits={userCredits} />
 
       <style >{`
-        .home-page {
-          min-height: 100vh;
-          background: #f9fafb;
-        }
+  .home-page {
+  min-height: 100vh;
+  background: #f9fafb;
+}
 
-        .container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 16px;
-        }
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
 
-        .products-section {
-          padding: 48px 0;
-          background: white;
-        }
+.products-section {
+  padding: 48px 0;
+  background: white;
+}
 
-        .products-section.alt {
-          background: #f3f4f6;
-        }
+.products-section.alt {
+  background: #f3f4f6;
+}
 
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 40px;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
 
-        .section-title {
-          font-size: 32px;
-          color: #1f2937;
-          margin: 0;
-          font-weight: 700;
-        }
+/* 🔥🔥🔥 TÍTULOS GRANDES PRA CARALHO - DESKTOP 🔥🔥🔥 */
+.section-title {
+  font-size: 42px !important; /* 42px! GRANDE PRA CARALHO! */
+  color: #1f2937;
+  margin: 0;
+  font-weight: 800 !important; /* NEGRÃO! */
+  line-height: 1.2;
+}
 
-        .section-title span {
-          color: #8b5cf6;
-          display: block;
-          font-weight: 600;
-        }
+.section-title span {
+  color: #8b5cf6;
+  display: block;
+  font-weight: 700 !important;
+  font-size: 36px !important; /* Também grande! */
+  margin-top: 4px;
+}
 
-        .section-link {
-          color: #8b5cf6;
-          text-decoration: none;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.2s ease;
-          font-size: 16px;
-        }
+.section-link {
+  color: #8b5cf6;
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-size: 18px; /* Aumentado também */
+}
 
-        .section-link:hover {
-          color: #7c3aed;
-          gap: 12px;
-        }
+.section-link:hover {
+  color: #7c3aed;
+  gap: 12px;
+}
 
-        .products-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 24px;
-        }
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
 
-        /* Otimização para reduzir movimento */
-        @media (prefers-reduced-motion: reduce) {
-          .product-card {
-            animation: none !important;
-            transition: none !important;
-          }
-          
-          .section-link:hover {
-            gap: 8px;
-          }
-        }
+/* Otimização para reduzir movimento */
+@media (prefers-reduced-motion: reduce) {
+  .product-card {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .section-link:hover {
+    gap: 8px;
+  }
+}
 
-        @media (max-width: 1200px) {
-          .products-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-        }
+@media (max-width: 1200px) {
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  /* 🔥 TABLET GRANDE - TÍTULO AINDA GRANDE! */
+  .section-title {
+    font-size: 38px !important;
+  }
+  
+  .section-title span {
+    font-size: 32px !important;
+  }
+}
 
-        @media (max-width: 992px) {
-          .products-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .section-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 12px;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .products-grid {
-            grid-template-columns: 1fr;
-            max-width: 400px;
-            margin: 0 auto;
-          }
-
-          .products-section {
-            padding: 32px 0;
-          }
-
-          .section-title {
-            font-size: 24px;
-          }
-
-          .section-link {
-            font-size: 14px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .container {
-            padding: 0 12px;
-          }
-          
-          .section-title {
-            font-size: 20px;
-          }
-        }
-
-          /* NOVO: CENTRALIZA TÍTULOS EM MOBILE/TABLET */
-  @media (max-width: 992px) {
-    .section-header {
-      text-align: center !important;
-      flex-direction: column;
-      align-items: center !important;
-      gap: 16px;
-    }
-
-    .section-title {
-      text-align: center !important;
-      font-size: 28px !important;
-    }
-
-    .section-title span {
-      font-size: 24px !important;
-      text-align: center !important;
-    }
-
-    .section-link {
-      justify-content: center;
-      width: 100%;
-      margin-top: 8px;
-    }
+@media (max-width: 992px) {
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (max-width: 768px) {
-    .section-title {
-      font-size: 24px !important;
-    }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  /* 🔥 TABLET - TÍTULO AINDA BEM GRANDE! */
+  .section-title {
+    font-size: 36px !important;
+  }
+  
+  .section-title span {
+    font-size: 30px !important;
+  }
+  
+  .section-link {
+    font-size: 16px;
+  }
+}
 
-    .section-title span {
-      font-size: 20px !important;
-    }
-
-    .section-subtitle {
-      text-align: center !important;
-      font-size: 14px !important;
-    }
+@media (max-width: 768px) {
+  .products-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin: 0 auto;
   }
 
-  @media (max-width: 480px) {
-    .section-title {
-      font-size: 22px !important;
-    }
-
-    .section-title span {
-      font-size: 18px !important;
-    }
+  .products-section {
+    padding: 32px 0;
   }
+
+  /* 🔥 MOBILE - TÍTULO GRANDE TAMBÉM! */
+  .section-title {
+    font-size: 32px !important; /* 32px no mobile! GRANDE! */
+  }
+
+  .section-title span {
+    font-size: 28px !important; /* 28px! */
+  }
+
+  .section-link {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 12px;
+  }
+  
+  /* 🔥 MOBILE PEQUENO - AINDA GRANDE! */
+  .section-title {
+    font-size: 28px !important; /* 28px! Ninguém reclama! */
+  }
+  
+  .section-title span {
+    font-size: 24px !important; /* 24px! */
+  }
+  
+  .section-link {
+    font-size: 14px;
+  }
+}
+
+/* NOVO: CENTRALIZA TÍTULOS EM MOBILE/TABLET */
+@media (max-width: 992px) {
+  .section-header {
+    text-align: center !important;
+    flex-direction: column;
+    align-items: center !important;
+    gap: 16px;
+  }
+
+  .section-title {
+    text-align: center !important;
+  }
+
+  .section-title span {
+    text-align: center !important;
+  }
+
+  .section-link {
+    justify-content: center;
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
+/* 📱 iPhone SE - AINDA LEGÍVEL! */
+@media (max-width: 375px) {
+  .section-title {
+    font-size: 26px !important; /* 26px! */
+  }
+  
+  .section-title span {
+    font-size: 22px !important; /* 22px! */
+  }
+}
+
+/* 📱 MUITO PEQUENO - ÚLTIMO RECURSO */
+@media (max-width: 320px) {
+  .section-title {
+    font-size: 24px !important; /* 24px mínimo! */
+  }
+  
+  .section-title span {
+    font-size: 20px !important; /* 20px! */
+  }
+}
+
+/* 🔥 PARA OS OUTROS TÍTULOS DA HOME (como "Estilo Premium" etc) 🔥 */
+.hero-title {
+  font-size: 48px !important;
+  font-weight: 900 !important;
+}
+
+.hero-subtitle {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 40px !important;
+  }
+  
+  .hero-subtitle {
+    font-size: 28px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 36px !important;
+  }
+  
+  .hero-subtitle {
+    font-size: 24px !important;
+  }
+}
+
+/* 🔥🔥🔥 SECTION-SUBTITLE - TAMBÉM GRANDE PRA CARALHO! 🔥🔥🔥 */
+.section-subtitle {
+  font-size: 20px !important; /* 24px no desktop! GRANDE! */
+  color: #6b7280;
+  font-weight: 500;
+  margin-top: 12px;
+  line-height: 1.5;
+  max-width: 800px;
+}
+
+/* Responsividade do section-subtitle */
+@media (max-width: 992px) {
+  .section-subtitle {
+    font-size: 22px !important; /* 22px no tablet! */
+    text-align: center !important;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .section-subtitle {
+    font-size: 20px !important; /* 20px no mobile! */
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-subtitle {
+    font-size: 18px !important; /* 18px no mobile pequeno! */
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .section-subtitle {
+    font-size: 16px !important; /* 16px mínimo aceitável! */
+  }
+}
+
+/* Se for um subtítulo dentro do section-title */
+.section-title + .section-subtitle {
+  margin-top: 8px;
+}
+
+/* Se for um subtítulo dentro do hero/carousel */
+.hero-subtitle {
+  font-size: 28px !important; /* Para o carousel também */
+}
+
+@media (max-width: 768px) {
+  .hero-subtitle {
+    font-size: 24px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-subtitle {
+    font-size: 20px !important;
+  }
+}
       `}</style>
     </div>
   );

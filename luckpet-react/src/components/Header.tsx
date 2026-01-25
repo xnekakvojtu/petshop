@@ -1,4 +1,4 @@
-// src/components/Header.tsx - AVATAR CORRIGIDO E BONITO
+// src/components/Header.tsx - VERSÃO MAIS RESPONSIVA
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SearchBar from './SearchBar';
@@ -92,6 +92,11 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleMyBookings = () => {
+    if (isAdmin) {
+      alert('Administradores não podem acessar agendamentos de clientes. Use o Painel Admin para gerenciar todos os agendamentos.');
+      return;
+    }
+    
     if (user) {
       navigate('/agendamentos');
     } else {
@@ -111,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({
       'gato': '/img/avatares/gato.jpg',
       'coelho': '/img/avatares/coelho.jpg',
       'passaro': '/img/avatares/passaro.jpg',
-      'admin': '/img/avatares/cachorro.jpg' // Usa a mesma imagem
+      'admin': '/img/avatares/cachorro.jpg'
     };
     return avatars[avatarName] || avatars['cachorro'];
   };
@@ -129,7 +134,6 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const renderUserAvatar = () => {
-    // ⭐ MUDANÇA: Se for admin, usa classe diferente
     const avatarClass = isAdmin ? 'admin-avatar' : 'user-avatar';
     
     return (
@@ -138,27 +142,27 @@ const Header: React.FC<HeaderProps> = ({
           <img 
             src={getAvatarImage(user?.avatar || 'cachorro')} 
             alt={user?.name || 'Usuário'}
-            className={avatarClass} // ⭐ Usa classe condicional
+            className={avatarClass}
             onError={(e) => {
               e.currentTarget.src = '/img/avatares/cachorro.jpg';
             }}
           />
-          {isAdmin && (
-            <div className="admin-badge-small">
-              <i className="fas fa-crown"></i>
-            </div>
-          )}
-          {wishlistCount > 0 && !isAdmin && (
-            <span className="wishlist-indicator">{wishlistCount}</span>
-          )}
         </div>
+        {/* ⭐⭐ COROA FORA DA FOTO - AGORA VISÍVEL */}
+        {isAdmin && (
+          <div className="admin-badge-small">
+            <i className="fas fa-crown"></i>
+          </div>
+        )}
+        {wishlistCount > 0 && !isAdmin && (
+          <span className="wishlist-indicator">{wishlistCount}</span>
+        )}
       </div>
     );
   };
 
   return (
     <>
-      {/* Promo Bar - não mostrar na área admin */}
       {!isInAdminArea && (
         <div className="promo-bar">
           <p>
@@ -170,11 +174,10 @@ const Header: React.FC<HeaderProps> = ({
       <header className="header">
         <div className="header-container">
           
-          {/* Logo */}
           <div className="header-left">
             <Link to={isInAdminArea ? "/admin" : "/"} className="logo">
               <i className="fas fa-paw"></i>
-              <span>{isInAdminArea ? 'LuckPet Admin' : 'LuckPet'}</span>
+              <span className="logo-text">{isInAdminArea ? 'LuckPet Admin' : 'LuckPet'}</span>
               {isInAdminArea && (
                 <span className="admin-badge-header">
                   <i className="fas fa-crown"></i> Admin
@@ -183,7 +186,6 @@ const Header: React.FC<HeaderProps> = ({
             </Link>
           </div>
 
-          {/* Search - não mostrar na área admin */}
           {!isInAdminArea && (
             <div className={`header-search ${showSearchMobile ? 'mobile-active' : ''}`}>
               {(!isMobile || showSearchMobile) && (
@@ -203,10 +205,8 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
-          {/* Actions */}
           <div className="header-actions">
             
-            {/* Search Toggle no Mobile - apenas fora do admin */}
             {isMobile && !showSearchMobile && !isInAdminArea && (
               <button 
                 className="action-btn search-toggle"
@@ -217,7 +217,6 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Carrinho - não mostrar na área admin */}
             {!isInAdminArea && (
               <button 
                 className="action-btn cart-btn" 
@@ -232,7 +231,6 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Usuário */}
             <div className="user-dropdown-container" ref={userMenuRef}>
               {isLoggedIn && user ? (
                 <>
@@ -252,7 +250,6 @@ const Header: React.FC<HeaderProps> = ({
                     <i className={`fas fa-chevron-down dropdown-arrow ${showUserMenu ? 'rotate' : ''}`}></i>
                   </button>
 
-                  {/* Overlay para mobile */}
                   {showUserMenu && isMobile && (
                     <div 
                       className="dropdown-overlay"
@@ -262,7 +259,7 @@ const Header: React.FC<HeaderProps> = ({
 
                   {showUserMenu && (
                     <div className={`dropdown-menu ${isMobile ? 'mobile-dropdown' : ''}`}>
-                      <div className="dropdown-header">
+                      <div className={`dropdown-header ${isAdmin ? 'admin-header' : ''}`}>
                         <div className="dropdown-avatar-container">
                           <div className="avatar-dropdown-wrapper">
                             <img 
@@ -273,21 +270,24 @@ const Header: React.FC<HeaderProps> = ({
                                 e.currentTarget.src = '/img/avatares/cachorro.jpg';
                               }}
                             />
-                            {isAdmin && (
-                              <div className="admin-badge-dropdown">
-                                <i className="fas fa-crown"></i>
-                              </div>
-                            )}
                           </div>
+                          {/* ⭐⭐ COROA FORA DA FOTO NO DROPDOWN TAMBÉM */}
+                          {isAdmin && (
+                            <div className="admin-badge-dropdown">
+                              <i className="fas fa-crown"></i>
+                            </div>
+                          )}
                         </div>
                         <div className="dropdown-user-info">
-                          <h3 className="dropdown-name">{user.name}</h3>
+                          <h3 className={`dropdown-name ${isAdmin ? 'admin-name' : ''}`}>
+                            {user.name}
+                          </h3>
                           <div className="dropdown-level">
                             <span className={`level-badge ${isAdmin ? 'admin-level' : ''}`}>
                               {isAdmin ? 'Administrador' : (user.isGuest ? 'Convidado' : 'Cliente')}
                             </span>
                           </div>
-                          <div className="dropdown-credits">
+                          <div className={`dropdown-credits ${isAdmin ? 'admin-credits' : ''}`}>
                             <i className="fas fa-coins"></i>
                             <span>{getUserCredits()} LuckCoins</span>
                           </div>
@@ -297,7 +297,6 @@ const Header: React.FC<HeaderProps> = ({
                       <div className="dropdown-divider"></div>
                       
                       <div className="dropdown-items">
-                        {/* Link para Painel Admin se for admin */}
                         {isAdmin && !isInAdminArea && (
                           <button 
                             className="dropdown-item admin-item"
@@ -308,7 +307,6 @@ const Header: React.FC<HeaderProps> = ({
                           </button>
                         )}
 
-                        {/* Link para voltar ao Site se estiver no admin */}
                         {isAdmin && isInAdminArea && (
                           <Link 
                             to="/" 
@@ -320,21 +318,25 @@ const Header: React.FC<HeaderProps> = ({
                           </Link>
                         )}
 
-                        {/* Links inativos (sem página) */}
                         <div className="dropdown-item disabled" title="Em breve">
                           <i className="fas fa-user"></i> 
                           <span>Meu Perfil</span>
                         </div>
                         
                         <button 
-                          className="dropdown-item"
+                          className={`dropdown-item ${isAdmin ? 'disabled' : ''}`}
                           onClick={handleMyBookings}
+                          title={isAdmin ? 'Administradores não podem acessar agendamentos' : undefined}
                         >
                           <i className="fas fa-calendar-alt"></i> 
                           <span>Meus Agendamentos</span>
+                          {isAdmin && (
+                            <span className="dropdown-item-lock">
+                              <i className="fas fa-lock"></i>
+                            </span>
+                          )}
                         </button>
                         
-                        {/* Favoritos apenas para usuários normais */}
                         {!isAdmin && (
                           <button 
                             className="dropdown-item wishlist-item"
@@ -348,7 +350,6 @@ const Header: React.FC<HeaderProps> = ({
                           </button>
                         )}
 
-                        {/* Pedidos apenas para usuários normais */}
                         {!isAdmin && (
                           <div className="dropdown-item disabled" title="Em breve">
                             <i className="fas fa-box"></i> 
@@ -356,7 +357,6 @@ const Header: React.FC<HeaderProps> = ({
                           </div>
                         )}
 
-                        {/* Configurações */}
                         <div className="dropdown-item disabled" title="Em breve">
                           <i className="fas fa-cog"></i> 
                           <span>Configurações</span>
@@ -395,28 +395,64 @@ const Header: React.FC<HeaderProps> = ({
           color: white;
           padding: 0.5rem 0;
           text-align: center;
-          font-size: 0.875rem;
+          font-size: 0.8rem;
+          font-weight: 500;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .promo-bar::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          animation: shimmer 3s infinite;
+        }
+
+        .promo-bar p {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          margin: 0;
+          letter-spacing: 0.3px;
+        }
+
+        .promo-bar strong {
+          font-weight: 600;
+        }
+
+        @keyframes shimmer {
+          0% { left: -100%; }
+          100% { left: 100%; }
         }
 
         /* Header Admin */
         .admin-badge-header {
-          margin-left: 10px;
+          margin-left: 8px;
           background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
           color: #92400e;
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: 12px;
+          padding: 3px 8px;
+          border-radius: 10px;
+          font-size: 10px;
           font-weight: 600;
           display: inline-flex;
           align-items: center;
           gap: 4px;
         }
 
-        /* Avatar Container - NOVO */
+        /* Avatar Container - POSICIONAMENTO CORRIGIDO */
         .user-avatar-container {
           position: relative;
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .avatar-wrapper {
@@ -425,31 +461,32 @@ const Header: React.FC<HeaderProps> = ({
           height: 100%;
           border-radius: 50%;
           overflow: hidden;
+          z-index: 1;
         }
 
-        /* Avatar Admin - BORDA AMARELA E BONITO */
+        /* Avatar Admin - BORDA DOURADA */
         .admin-avatar {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          border: 3px solid #fbbf24 !important; /* ⭐ BORDA AMARELA */
+          border: 2px solid #fbbf24 !important;
           border-radius: 50% !important;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+          box-shadow: 0 3px 10px rgba(251, 191, 36, 0.3);
         }
 
         .user-btn:hover .admin-avatar {
-          border-color: #f59e0b !important; /* ⭐ COR MAIS ESCURA NO HOVER */
+          border-color: #f59e0b !important;
           transform: scale(1.05);
-          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+          box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
         }
 
-        /* Avatar normal - BONITO */
+        /* Avatar normal */
         .user-avatar {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          border: 3px solid #E5E7EB !important;
+          border: 2px solid #E5E7EB !important;
           border-radius: 50% !important;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -457,34 +494,37 @@ const Header: React.FC<HeaderProps> = ({
         .user-btn:hover .user-avatar {
           border-color: #8B5CF6 !important;
           transform: scale(1.05);
-          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+          box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
         }
 
-        /* Badges Admin */
+        /* ⭐⭐ COROA FORA DA FOTO - VISÍVEL! */
         .admin-badge-small {
           position: absolute;
-          bottom: -2px;
+          top: -2px;
           right: -2px;
           background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
           color: #92400e;
-          width: 20px;
-          height: 20px;
+          width: 16px;
+          height: 16px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 10px;
-          border: 2px solid white;
-          z-index: 2;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          font-size: 8px;
+          border: 1.5px solid white;
+          z-index: 10;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
         }
 
         /* Avatar Dropdown */
         .dropdown-avatar-container {
           position: relative;
-          width: 70px;
-          height: 70px;
+          width: 60px;
+          height: 60px;
           flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .avatar-dropdown-wrapper {
@@ -493,53 +533,76 @@ const Header: React.FC<HeaderProps> = ({
           height: 100%;
           border-radius: 50%;
           overflow: hidden;
+          z-index: 1;
         }
 
         .dropdown-avatar {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          border: 4px solid white;
+          border: 3px solid white;
           border-radius: 50% !important;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
           transition: all 0.3s ease;
         }
 
         .admin-dropdown-avatar {
-          border: 4px solid #fbbf24 !important;
-          box-shadow: 0 8px 25px rgba(251, 191, 36, 0.25);
+          border: 3px solid #fbbf24 !important;
+          box-shadow: 0 6px 20px rgba(251, 191, 36, 0.25);
         }
 
+        /* ⭐⭐ COROA DO DROPDOWN FORA DA FOTO */
         .admin-badge-dropdown {
           position: absolute;
-          bottom: -5px;
-          right: -5px;
+          top: -4px;
+          right: -4px;
           background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
           color: #92400e;
-          width: 28px;
-          height: 28px;
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
-          border: 3px solid white;
-          z-index: 2;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+          font-size: 10px;
+          border: 2px solid white;
+          z-index: 10;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
         }
 
         .admin-icon {
-          margin-left: 5px;
+          margin-left: 4px;
           color: #fbbf24;
-          font-size: 14px;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          font-size: 12px;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* MODAL ADMIN COM CORES DOURADAS */
+        .admin-header {
+          background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%) !important;
+          border-bottom: 2px solid #fbbf24 !important;
+        }
+
+        .admin-name {
+          color: #92400e !important;
+          text-shadow: 0 1px 2px rgba(146, 64, 14, 0.1);
         }
 
         /* Menu Dropdown Admin */
         .admin-level {
-          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-          color: #92400e;
-          box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+          color: #92400e !important;
+          box-shadow: 0 3px 8px rgba(251, 191, 36, 0.3);
+        }
+
+        .admin-credits {
+          background: white !important;
+          border: 1px solid #fbbf24 !important;
+          color: #92400e !important;
+        }
+
+        .admin-credits i {
+          color: #fbbf24 !important;
         }
 
         .admin-item {
@@ -575,21 +638,26 @@ const Header: React.FC<HeaderProps> = ({
         /* Wishlist Indicator */
         .wishlist-indicator {
           position: absolute;
-          top: -4px;
-          right: -4px;
+          top: -3px;
+          right: -3px;
           background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
           color: white;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 700;
-          min-width: 18px;
-          height: 18px;
-          border-radius: 9px;
+          min-width: 15px;
+          height: 15px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid white;
+          border: 1.5px solid white;
           z-index: 2;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Quando tiver coroa E wishlist (não deveria acontecer, mas vamos garantir) */
+        .admin-badge-small + .wishlist-indicator {
+          display: none;
         }
 
         /* Itens desabilitados */
@@ -609,6 +677,40 @@ const Header: React.FC<HeaderProps> = ({
           color: #9CA3AF !important;
         }
 
+        /* Ícone de cadeado para itens bloqueados */
+        .dropdown-item-lock {
+          position: absolute;
+          right: 1rem;
+          color: #9CA3AF;
+          font-size: 0.75rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Tooltip para itens bloqueados */
+        .dropdown-item[title] {
+          position: relative;
+        }
+
+        .dropdown-item[title]:hover::after {
+          content: attr(title);
+          position: absolute;
+          left: 100%;
+          top: 50%;
+          transform: translateY(-50%);
+          background: #374151;
+          color: white;
+          padding: 0.5rem 0.75rem;
+          border-radius: 8px;
+          font-size: 0.8rem;
+          white-space: nowrap;
+          margin-left: 10px;
+          z-index: 1000;
+          pointer-events: none;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
         /* Estilos existentes mantidos */
         .header {
           background: white;
@@ -621,11 +723,11 @@ const Header: React.FC<HeaderProps> = ({
         .header-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 1rem;
+          padding: 0.75rem 1rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1rem;
+          gap: 0.75rem;
         }
 
         .header-left {
@@ -635,12 +737,17 @@ const Header: React.FC<HeaderProps> = ({
         .logo {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.5rem;
           text-decoration: none;
           color: #1F2937;
           font-weight: 800;
-          font-size: 1.6rem;
+          font-size: 1.4rem;
           transition: all 0.3s;
+          white-space: nowrap;
+        }
+
+        .logo-text {
+          font-size: inherit;
         }
 
         .logo:hover {
@@ -650,7 +757,7 @@ const Header: React.FC<HeaderProps> = ({
 
         .logo i {
           color: #8B5CF6;
-          font-size: 1.8rem;
+          font-size: 1.6rem;
         }
 
         .header-search {
@@ -661,21 +768,21 @@ const Header: React.FC<HeaderProps> = ({
 
         .close-search {
           position: absolute;
-          right: 1rem;
+          right: 0.75rem;
           top: 50%;
           transform: translateY(-50%);
           background: none;
           border: none;
           color: #6B7280;
           cursor: pointer;
-          padding: 0.5rem;
+          padding: 0.4rem;
           z-index: 10;
         }
 
         .header-actions {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           flex-shrink: 0;
         }
 
@@ -684,12 +791,12 @@ const Header: React.FC<HeaderProps> = ({
           border: none;
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem;
+          gap: 0.4rem;
+          padding: 0.5rem;
           color: #4B5563;
           cursor: pointer;
           text-decoration: none;
-          border-radius: 12px;
+          border-radius: 10px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
         }
@@ -697,7 +804,7 @@ const Header: React.FC<HeaderProps> = ({
         .action-btn:hover {
           background: #F3F4F6;
           color: #8B5CF6;
-          transform: translateY(-2px);
+          transform: translateY(-1px);
         }
 
         .cart-btn {
@@ -712,7 +819,7 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         .cart-btn i {
-          font-size: 1.4rem;
+          font-size: 1.3rem;
           color: #4B5563;
           transition: color 0.3s;
         }
@@ -723,24 +830,24 @@ const Header: React.FC<HeaderProps> = ({
 
         .cart-btn .badge {
           position: absolute;
-          top: -8px;
-          right: -8px;
+          top: -6px;
+          right: -6px;
           background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
           color: white;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 700;
-          min-width: 20px;
-          height: 20px;
-          border-radius: 10px;
+          min-width: 18px;
+          height: 18px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid white;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          border: 1.5px solid white;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
         }
 
         .btn-text {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 600;
           color: #374151;
         }
@@ -752,10 +859,10 @@ const Header: React.FC<HeaderProps> = ({
         .user-btn {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.5rem;
           background: none;
           border: none;
-          padding: 0.5rem 0.75rem;
+          padding: 0.4rem 0.5rem;
           cursor: pointer;
           border-radius: 50px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -763,20 +870,20 @@ const Header: React.FC<HeaderProps> = ({
 
         .user-btn:hover {
           background: #F3F4F6;
-          transform: translateY(-2px);
+          transform: translateY(-1px);
         }
 
         .user-name {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 600;
           color: #1F2937;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
         }
 
         .dropdown-arrow {
-          font-size: 0.85rem;
+          font-size: 0.75rem;
           color: #6B7280;
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -799,11 +906,11 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-menu {
           position: absolute;
           right: 0;
-          top: calc(100% + 0.75rem);
+          top: calc(100% + 0.5rem);
           background: white;
-          border-radius: 16px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-          min-width: 320px;
+          border-radius: 14px;
+          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+          min-width: 280px;
           z-index: 100;
           animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;
@@ -813,7 +920,7 @@ const Header: React.FC<HeaderProps> = ({
         @keyframes slideDown {
           from {
             opacity: 0;
-            transform: translateY(-15px) scale(0.95);
+            transform: translateY(-10px) scale(0.95);
           }
           to {
             opacity: 1;
@@ -822,11 +929,11 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         .dropdown-header {
-          padding: 1.5rem;
+          padding: 1.25rem;
           background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1rem;
         }
 
         .dropdown-user-info {
@@ -835,36 +942,37 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         .dropdown-name {
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 700;
           color: #1F2937;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.4rem;
           line-height: 1.2;
+          word-break: break-word;
         }
 
         .level-badge {
           display: inline-block;
           background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
           color: white;
-          font-size: 0.8rem;
+          font-size: 0.7rem;
           font-weight: 700;
-          padding: 0.35rem 1rem;
-          border-radius: 20px;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+          padding: 0.3rem 0.8rem;
+          border-radius: 15px;
+          box-shadow: 0 3px 8px rgba(139, 92, 246, 0.25);
         }
 
         .dropdown-credits {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.5rem;
           color: #8B5CF6;
           font-weight: 700;
-          font-size: 0.95rem;
-          margin-top: 0.75rem;
+          font-size: 0.85rem;
+          margin-top: 0.5rem;
           background: white;
-          padding: 0.5rem 0.75rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+          padding: 0.4rem 0.6rem;
+          border-radius: 10px;
+          box-shadow: 0 1px 4px rgba(139, 92, 246, 0.1);
         }
 
         .dropdown-credits i {
@@ -874,26 +982,26 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-divider {
           height: 1px;
           background: linear-gradient(90deg, transparent, #E5E7EB, transparent);
-          margin: 0.5rem 0;
+          margin: 0.4rem 0;
         }
 
         .dropdown-items {
-          padding: 0.75rem;
+          padding: 0.6rem;
         }
 
         .dropdown-item {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.6rem;
           width: 100%;
-          padding: 0.85rem 1rem;
+          padding: 0.7rem 0.8rem;
           background: none;
           border: none;
           color: #4B5563;
           text-decoration: none;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 500;
-          border-radius: 12px;
+          border-radius: 10px;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
@@ -902,14 +1010,14 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-item:hover {
           background: #F3F4F6;
           color: #8B5CF6;
-          transform: translateX(5px);
+          transform: translateX(4px);
         }
 
         .dropdown-item i {
-          width: 20px;
+          width: 18px;
           text-align: center;
           color: #9CA3AF;
-          font-size: 1rem;
+          font-size: 0.9rem;
           transition: color 0.3s;
         }
 
@@ -924,7 +1032,7 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-item.wishlist-item:hover {
           background: #FEE2E2;
           color: #DC2626;
-          transform: translateX(5px);
+          transform: translateX(4px);
         }
 
         .dropdown-item.wishlist-item i {
@@ -933,17 +1041,17 @@ const Header: React.FC<HeaderProps> = ({
 
         .dropdown-badge {
           position: absolute;
-          right: 1rem;
+          right: 0.8rem;
           background: linear-gradient(135deg, #10B981 0%, #059669 100%);
           color: white;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 700;
-          padding: 3px 10px;
-          border-radius: 20px;
+          padding: 2px 8px;
+          border-radius: 15px;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+          box-shadow: 0 1px 4px rgba(16, 185, 129, 0.3);
         }
 
         .dropdown-item.logout {
@@ -953,7 +1061,7 @@ const Header: React.FC<HeaderProps> = ({
         .dropdown-item.logout:hover {
           background: #FEE2E2;
           color: #DC2626;
-          transform: translateX(5px);
+          transform: translateX(4px);
         }
 
         .dropdown-item.logout i {
@@ -966,8 +1074,8 @@ const Header: React.FC<HeaderProps> = ({
 
         @media (max-width: 768px) {
           .header-container {
-            padding: 0.75rem 1rem;
-            flex-wrap: wrap;
+            padding: 0.5rem 0.75rem;
+            gap: 0.5rem;
           }
 
           .header-left {
@@ -976,14 +1084,14 @@ const Header: React.FC<HeaderProps> = ({
 
           .header-actions {
             order: 2;
-            gap: 0.5rem;
+            gap: 0.4rem;
           }
 
           .header-search {
             order: 3;
             width: 100%;
             max-width: 100%;
-            margin-top: 0.75rem;
+            margin-top: 0.5rem;
             display: none;
           }
 
@@ -1004,15 +1112,15 @@ const Header: React.FC<HeaderProps> = ({
           }
 
           .cart-btn i {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
           }
 
           .cart-btn .badge {
-            top: -6px;
-            right: -6px;
-            font-size: 0.7rem;
-            min-width: 18px;
-            height: 18px;
+            top: -5px;
+            right: -5px;
+            font-size: 0.65rem;
+            min-width: 16px;
+            height: 16px;
           }
 
           .dropdown-menu.mobile-dropdown {
@@ -1023,7 +1131,7 @@ const Header: React.FC<HeaderProps> = ({
             right: 0;
             width: 100%;
             max-width: 100%;
-            border-radius: 20px 20px 0 0;
+            border-radius: 16px 16px 0 0;
             animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           }
 
@@ -1046,43 +1154,171 @@ const Header: React.FC<HeaderProps> = ({
           }
 
           .user-avatar-container {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
           }
 
+          /* ⭐ AJUSTE DA COROA NO MOBILE */
           .admin-badge-small {
-            width: 18px;
-            height: 18px;
-            font-size: 9px;
+            width: 14px;
+            height: 14px;
+            font-size: 7px;
+            top: -1px;
+            right: -1px;
+            border-width: 1px;
+          }
+
+          .dropdown-item[title]:hover::after {
+            display: none;
           }
         }
 
         @media (max-width: 480px) {
           .header-container {
-            padding: 0.5rem;
-            gap: 0.5rem;
+            padding: 0.4rem 0.5rem;
+            gap: 0.4rem;
           }
 
           .promo-bar {
-            font-size: 0.75rem;
-            padding: 0.4rem;
+            font-size: 0.7rem;
+            padding: 0.3rem;
+          }
+
+          .promo-bar p {
+            gap: 0.3rem;
           }
 
           .logo {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
+            gap: 0.4rem;
           }
 
           .logo i {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
+          }
+
+          .logo-text {
+            font-size: 1.1rem;
           }
 
           .cart-btn {
-            padding: 0.5rem;
+            padding: 0.4rem;
           }
 
           .user-avatar-container {
-            width: 34px;
-            height: 34px;
+            width: 30px;
+            height: 30px;
+          }
+
+          .action-btn {
+            padding: 0.4rem;
+          }
+
+          .header-actions {
+            gap: 0.3rem;
+          }
+
+          /* ⭐ AJUSTE DA COROA NO MOBILE PEQUENO */
+          .admin-badge-small {
+            width: 12px;
+            height: 12px;
+            font-size: 6px;
+            top: 0px;
+            right: 0px;
+          }
+
+          .wishlist-indicator {
+            top: -2px;
+            right: -2px;
+            font-size: 8px;
+            min-width: 13px;
+            height: 13px;
+          }
+
+          /* Ajuste do dropdown para telas muito pequenas */
+          .dropdown-header {
+            padding: 1rem;
+            gap: 0.8rem;
+          }
+
+          .dropdown-avatar-container {
+            width: 50px;
+            height: 50px;
+          }
+
+          .admin-badge-dropdown {
+            width: 18px;
+            height: 18px;
+            font-size: 8px;
+            border-width: 1.5px;
+          }
+
+          .dropdown-name {
+            font-size: 0.9rem;
+          }
+
+          .level-badge {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.6rem;
+          }
+
+          .dropdown-credits {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.5rem;
+          }
+
+          .dropdown-item {
+            padding: 0.6rem 0.7rem;
+            font-size: 0.85rem;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .logo {
+            font-size: 1rem;
+          }
+
+          .logo-text {
+            font-size: 1rem;
+          }
+
+          .logo i {
+            font-size: 1.2rem;
+          }
+
+          .user-avatar-container {
+            width: 28px;
+            height: 28px;
+          }
+
+          .admin-badge-small {
+            width: 11px;
+            height: 11px;
+            font-size: 5px;
+          }
+
+          .cart-btn i {
+            font-size: 1.1rem;
+          }
+
+          .cart-btn .badge {
+            min-width: 14px;
+            height: 14px;
+            font-size: 0.6rem;
+          }
+
+          .dropdown-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.6rem;
+          }
+
+          .dropdown-user-info {
+            text-align: center;
+          }
+
+          .dropdown-credits {
+            justify-content: center;
           }
         }
       `}</style>
