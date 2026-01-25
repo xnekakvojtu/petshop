@@ -1,4 +1,4 @@
-// src/components/ServicesGrid.tsx - LEGENDA CORRIGIDA
+// src/components/ServicesGrid.tsx - CARDS SIMPLES E BONITOS
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -34,11 +34,11 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
       <div className="container">
         <div className="section-header">
           <h2 className="section-title">
-           <span className="accent">Cuidado</span> Profissional
-</h2>
-<p className="section-subtitle">
-  Atendimento especializado com amor e qualidade
-</p>
+            <span className="accent">Cuidado</span> Profissional
+          </h2>
+          <p className="section-subtitle">
+            Atendimento especializado com amor e qualidade
+          </p>
         </div>
         
         <div className="services-grid">
@@ -49,8 +49,9 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
               style={{ '--index': index } as React.CSSProperties}
             >
               <div className="card-content">
-                <div className="icon-container">
-                  <div className="icon-bg">
+                {/* ÍCONE CIRCULAR E SIMPLES */}
+                <div className="icon-wrapper">
+                  <div className="icon-circle">
                     <i className={service.icon}></i>
                   </div>
                 </div>
@@ -58,14 +59,10 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
                 <div className="card-body">
                   <h3 className="service-title">{service.title}</h3>
                   
+                  {/* FEATURES COM DESIGN MINIMALISTA */}
                   <div className="features-list">
                     {service.features.map((feature, idx) => (
                       <div key={idx} className="feature">
-                        <div className="checkmark">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
                         <span className="feature-text">{feature}</span>
                       </div>
                     ))}
@@ -104,16 +101,16 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
       <style >{`
         .services-section {
           padding: 80px 0;
-          background: linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%);
+          background: #fafafa;
         }
 
         .container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 20px;
+          padding: 0 24px;
         }
 
-        /* HEADER - CENTRALIZADO EM MOBILE */
+        /* HEADER - MANTIDO IGUAL */
         .section-header {
           margin-bottom: 60px;
           text-align: left;
@@ -153,56 +150,56 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
           margin: 0;
         }
 
+        /* GRID SIMPLES E LIMPO */
         .services-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 30px;
         }
 
         .service-card {
           background: white;
-          border-radius: 20px;
-          padding: 32px;
-          position: relative;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-          border: 1px solid #F0F0F0;
-          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+          border-radius: 16px;
           overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border: 1px solid #f0f0f0;
+          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
           opacity: 0;
-          animation: fadeInUp 0.6s ease-out forwards;
+          animation: fadeInUp 0.5s ease-out forwards;
           animation-delay: calc(var(--index) * 0.1s);
         }
 
         .service-card:hover {
           transform: translateY(-8px);
-          box-shadow: 0 16px 40px rgba(124, 58, 237, 0.12);
-          border-color: #E8E0FF;
+          box-shadow: 0 20px 40px rgba(124, 58, 237, 0.1);
+          border-color: #e5deff;
         }
 
         .card-content {
+          padding: 32px;
           position: relative;
-          z-index: 2;
         }
 
-        .icon-container {
-          margin-bottom: 28px;
+        /* ÍCONE CIRCULAR MINIMALISTA */
+        .icon-wrapper {
           display: flex;
           justify-content: center;
+          margin-bottom: 24px;
         }
 
-        .icon-bg {
-          width: 72px;
-          height: 72px;
-          background: linear-gradient(135deg, #F8F5FF 0%, #F0EBFF 100%);
-          border-radius: 18px;
+        .icon-circle {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #f8f7ff 0%, #f1eeff 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid #EDE9FE;
+          border: 2px solid #ede9fe;
         }
 
-        .icon-bg i {
-          font-size: 32px;
+        .icon-circle i {
+          font-size: 28px;
           color: #7C3AED;
           background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%);
           -webkit-background-clip: text;
@@ -217,53 +214,53 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
         .service-title {
           font-size: 22px;
           font-weight: 700;
-          color: #1A1A1A;
+          color: #1a1a1a;
           margin: 0 0 24px 0;
           line-height: 1.3;
         }
 
+        /* FEATURES SIMPLES E LIMPAS */
         .features-list {
           margin-bottom: 32px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 12px;
         }
 
         .feature {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
+          padding: 0;
+          background: none;
+          border: none;
           text-align: left;
-        }
-
-        .checkmark {
-          flex-shrink: 0;
-          width: 20px;
-          height: 20px;
-          background: rgba(124, 58, 237, 0.1);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #7C3AED;
-          margin-top: 2px;
         }
 
         .feature-text {
           font-size: 15px;
           color: #666;
           line-height: 1.5;
-          flex: 1;
+          position: relative;
+          padding-left: 24px;
         }
 
+        .feature-text::before {
+          content: "✓";
+          position: absolute;
+          left: 0;
+          top: 0;
+          color: #7C3AED;
+          font-weight: bold;
+          font-size: 14px;
+        }
+
+        /* BOTÕES SIMPLES */
         .card-footer {
           padding-top: 24px;
-          border-top: 1px solid #F0F0F0;
+          border-top: 1px solid #f0f0f0;
         }
 
         .action-btn {
           width: 100%;
-          padding: 16px 24px;
+          padding: 14px 24px;
           border-radius: 12px;
           font-weight: 600;
           font-size: 15px;
@@ -274,30 +271,30 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
           justify-content: center;
           gap: 10px;
           transition: all 0.3s ease;
-          letter-spacing: 0.3px;
+          letter-spacing: 0.2px;
         }
 
         .book-btn {
-          background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%);
+          background: #7C3AED;
           color: white;
         }
 
         .book-btn:hover {
+          background: #6D28D9;
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.25);
-          background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%);
+          box-shadow: 0 8px 20px rgba(124, 58, 237, 0.25);
         }
 
         .login-btn {
-          background: #F9FAFB;
+          background: white;
           color: #7C3AED;
-          border: 1.5px solid #E8E0FF;
+          border: 2px solid #e5deff;
         }
 
         .login-btn:hover {
-          background: #F5F3FF;
+          background: #f9f7ff;
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.12);
+          box-shadow: 0 8px 20px rgba(124, 58, 237, 0.1);
           border-color: #7C3AED;
         }
 
@@ -305,10 +302,11 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
           stroke: currentColor;
         }
 
+        /* ANIMAÇÃO */
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
           }
           to {
             opacity: 1;
@@ -316,7 +314,7 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
           }
         }
 
-        /* RESPONSIVIDADE - CENTRALIZA EM MOBILE */
+        /* RESPONSIVIDADE */
         @media (max-width: 992px) {
           .services-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -339,11 +337,9 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
           
           .section-title {
             font-size: 32px;
-            text-align: center;
           }
           
           .section-subtitle {
-            text-align: center;
             font-size: 15px;
           }
           
@@ -353,8 +349,12 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
             margin: 0 auto;
           }
           
-          .service-card {
+          .card-content {
             padding: 28px 24px;
+          }
+          
+          .service-card:hover {
+            transform: translateY(-4px);
           }
         }
 
@@ -367,27 +367,22 @@ const ServicesGrid: React.FC<ServicesGridProps> = ({ services, onServiceClick })
             font-size: 28px;
           }
           
-          .section-subtitle {
-            font-size: 14px;
-          }
-          
           .service-title {
             font-size: 20px;
           }
           
           .action-btn {
-            padding: 14px 20px;
+            padding: 12px 20px;
             font-size: 14px;
           }
           
-          .icon-bg {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
+          .icon-circle {
+            width: 56px;
+            height: 56px;
           }
           
-          .icon-bg i {
-            font-size: 28px;
+          .icon-circle i {
+            font-size: 24px;
           }
         }
       `}</style>

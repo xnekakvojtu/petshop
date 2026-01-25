@@ -480,7 +480,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           }
           
           .product-name {
-            font-size: 18px !important;
+            font-size: 22px !important;
             font-weight: 700 !important;
             line-height: 1.3 !important;
           }
@@ -538,7 +538,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             }
           
           .product-name {
-            font-size: 27px !important;
+            font-size: 20px !important;
             font-weight: 700 !important;
             line-height: 1.3 !important;
           }
