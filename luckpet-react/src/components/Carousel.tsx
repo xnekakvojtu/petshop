@@ -19,7 +19,7 @@ const Carousel: React.FC<CarouselProps> = ({
       title: 'Moda Pet Premium',
       description: 'Roupas e acessórios da temporada com 25% OFF',
       link: '#moda-pet',
-      image: 'https://images.unsplash.com/photo-1554456854-55a089fd4cb2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80',
+      image: 'https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80',
       icon: 'fas fa-tshirt'
     },
     {
