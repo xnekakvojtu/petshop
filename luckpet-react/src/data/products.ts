@@ -163,30 +163,4 @@ export const plans: Plan[] = [
   }
 ];
 
-// Profissionais disponíveis
-export const professionals = [
-  {
-    id: '1',
-    name: 'Dra. Ana Silva',
-    specialty: 'Veterinária Geral',
-    avatar: '/img/profissionais/vet1.jpg',
-    rating: 4.9,
-    availableSlots: ['08:00', '10:00', '14:00', '16:00']
-  },
-  {
-    id: '2',
-    name: 'Dr. Carlos Santos',
-    specialty: 'Dermatologia',
-    avatar: '/img/profissionais/vet2.jpg',
-    rating: 4.8,
-    availableSlots: ['09:00', '13:00', '15:00', '17:00']
-  },
-  {
-    id: '3',
-    name: 'Tosadora Maria',
-    specialty: 'Estética Canina',
-    avatar: '/img/profissionais/tosa1.jpg',
-    rating: 4.7,
-    availableSlots: ['08:00', '11:00', '14:00', '16:00']
-  }
-];
+
