@@ -1,4 +1,4 @@
-// src/components/ProductCard.tsx - VERSÃO FINAL COM TODOS OS TÍTULOS GRANDES
+// src/components/ProductCard.tsx:
 import React, { memo, useCallback, useState } from 'react';
 import { Product } from '../types/index';
 import { useAuth } from '../hooks/useAuth';
@@ -20,9 +20,12 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   onToggleWishlist,
   index = 0
 }) => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>('M');
+
+  // Verificar se é admin
+  const isAdmin = user?.role === 'admin';
 
   const handleAddToCart = useCallback(() => {
     if (!isLoggedIn) {
@@ -74,6 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           onClick={handleToggleWishlist}
           aria-label={isInWishlist ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           disabled={!isLoggedIn}
+          style={isAdmin ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill={isInWishlist ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -106,6 +110,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
                   key={size}
                   className={`size-option ${selectedSize === size ? 'selected' : ''}`}
                   onClick={() => handleSizeSelect(size)}
+                  style={isAdmin ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
                 >
                   {size}
                 </button>
@@ -139,6 +144,19 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               <path d="M12 15V3M12 15L8 11M12 15L16 11M2 17L2 22H22V17C22 15.8954 21.1046 15 20 15H4C2.89543 15 2 15.8954 2 17Z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span>Fazer Login</span>
+          </button>
+        ) : isAdmin ? (
+          <button 
+            className="action-btn add-cart-btn"
+            style={{ cursor: 'not-allowed', opacity: 0.5 }}
+            disabled
+          >
+            <svg className="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Adicionar</span>
           </button>
         ) : (
           <button 
@@ -234,7 +252,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
 
-        .wishlist-btn:hover:not(.disabled) {
+        .wishlist-btn:hover:not(.disabled):not([style*="cursor: not-allowed"]) {
           color: #EF4444;
           border-color: #FECACA;
           box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
@@ -334,7 +352,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           justify-content: center;
         }
 
-        .size-option:hover {
+        .size-option:hover:not([style*="cursor: not-allowed"]) {
           border-color: #7C3AED;
           color: #7C3AED;
         }
@@ -420,7 +438,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           color: white;
         }
 
-        .add-cart-btn:hover:not(.adding):not(:disabled) {
+        .add-cart-btn:hover:not(.adding):not(:disabled):not([style*="cursor: not-allowed"]) {
           background: #6D28D9;
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
