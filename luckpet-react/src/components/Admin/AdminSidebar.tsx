@@ -127,7 +127,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onMobileClose, isMobileOpen
               fontSize: '18px',
             }}
           >
-            <i className="fas fa-spa"></i>
+            <i className="fas fa-crown"></i>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ 
