@@ -1,4 +1,4 @@
-// src/components/BookingModal.tsx - VERSÃO FINAL CORRIGIDA
+// src/components/BookingModal.tsx - VERSÃO ATUALIZADA
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { services } from '../data/products';
@@ -217,6 +217,12 @@ const BookingModal: React.FC<BookingModalProps> = ({
       }
 
       setSuccess('Agendamento confirmado com sucesso!');
+      
+      // ⭐⭐ DISPARAR EVENTO PARA ATUALIZAR NOTIFICAÇÃO NO HEADER ⭐⭐
+      const bookingEvent = new CustomEvent('bookingCreated', {
+        detail: { bookingId }
+      });
+      window.dispatchEvent(bookingEvent);
       
       // Fechar modal após 2 segundos
       setTimeout(() => {
@@ -592,7 +598,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="card-body">
                     <div className="info-row">
                       <span className="info-label">Método:</span>
-                      <div className="payment-method-display">
+                      <div className="payment-method-display money-payment">
                         <i className="fas fa-money-bill-wave"></i>
                         <span>Dinheiro na chegada</span>
                       </div>
@@ -1241,15 +1247,26 @@ const BookingModal: React.FC<BookingModalProps> = ({
             font-weight: 700;
           }
 
-          .payment-method-display {
+          /* ⭐⭐ ESTILO VERDE PARA PAGAMENTO EM DINHEIRO ⭐⭐ */
+          .payment-method-display.money-payment {
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);
+            border-radius: 10px;
+            border: 1.5px solid #86EFAC;
           }
 
-          .payment-method-display i {
-            color: #7C3AED;
+          .payment-method-display.money-payment i {
+            color: #059669;
             font-size: 16px;
+          }
+
+          .payment-method-display.money-payment span {
+            color: #065F46;
+            font-weight: 600;
+            font-size: 14px;
           }
 
           .info-item {

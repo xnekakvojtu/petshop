@@ -1,10 +1,11 @@
-// src/components/Header.tsx - VERSÃO MAIS RESPONSIVA
+// src/components/Header.tsx - VERSÃO SIMPLIFICADA
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import { getWishlist } from '../utils/storage';
 import { User } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { getUserBookings } from '../firebase/bookings';
 
 interface HeaderProps {
   cartCount: number;
@@ -24,14 +25,37 @@ const Header: React.FC<HeaderProps> = ({
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [bookingCount, setBookingCount] = useState(0); // SIMPLES: só o número
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const user = propUser || authUser;
   const isInAdminArea = location.pathname.startsWith('/admin');
 
+  // Buscar agendamentos - SIMPLES
   useEffect(() => {
+    const fetchBookings = async () => {
+      if (!user?.id || isAdmin) return;
+      
+      try {
+        const bookings = await getUserBookings(user.id);
+        const today = new Date().toISOString().split('T')[0];
+        const activeBookings = bookings.filter(booking => 
+          (booking.status === 'confirmed' || booking.status === 'pending') &&
+          booking.date >= today
+        );
+        
+        setBookingCount(activeBookings.length);
+      } catch (error) {
+        console.error('Erro ao buscar agendamentos:', error);
+      }
+    };
+
     const wishlist = getWishlist();
     setWishlistCount(wishlist.length);
+
+    if (isLoggedIn && user && !isAdmin) {
+      fetchBookings();
+    }
 
     const handleStorageChange = () => {
       const updatedWishlist = getWishlist();
@@ -53,23 +77,35 @@ const Header: React.FC<HeaderProps> = ({
 
     const handleUserLoggedOut = () => {
       setShowUserMenu(false);
+      setBookingCount(0);
       setTimeout(() => {
         window.location.reload();
       }, 100);
     };
 
+    // Atualiza quando cria novo agendamento
+    const handleNewBooking = () => {
+      setTimeout(() => {
+        if (user?.id && !isAdmin) {
+          fetchBookings();
+        }
+      }, 1500);
+    };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('resize', handleResize);
     window.addEventListener('userLoggedOut', handleUserLoggedOut);
+    window.addEventListener('bookingCreated', handleNewBooking);
     document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('userLoggedOut', handleUserLoggedOut);
+      window.removeEventListener('bookingCreated', handleNewBooking);
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [user, isLoggedIn, isAdmin]);
 
   useEffect(() => {
     if (showUserMenu) {
@@ -148,13 +184,18 @@ const Header: React.FC<HeaderProps> = ({
             }}
           />
         </div>
-        {/* ⭐⭐ COROA FORA DA FOTO - AGORA VISÍVEL */}
+        {/* ⭐⭐ COROA FORA DA FOTO */}
         {isAdmin && (
           <div className="admin-badge-small">
             <i className="fas fa-crown"></i>
           </div>
         )}
-        {wishlistCount > 0 && !isAdmin && (
+        {/* SIMPLES: Badge com número de agendamentos */}
+        {bookingCount > 0 && !isAdmin && (
+          <span className="booking-badge">{bookingCount}</span>
+        )}
+        {/* Wishlist badge só aparece se não tiver booking */}
+        {wishlistCount > 0 && !isAdmin && bookingCount === 0 && (
           <span className="wishlist-indicator">{wishlistCount}</span>
         )}
       </div>
@@ -271,10 +312,16 @@ const Header: React.FC<HeaderProps> = ({
                               }}
                             />
                           </div>
-                          {/* ⭐⭐ COROA FORA DA FOTO NO DROPDOWN TAMBÉM */}
+                          {/* ⭐⭐ COROA FORA DA FOTO NO DROPDOWN */}
                           {isAdmin && (
                             <div className="admin-badge-dropdown">
                               <i className="fas fa-crown"></i>
+                            </div>
+                          )}
+                          {/* Badge de agendamento no dropdown */}
+                          {bookingCount > 0 && !isAdmin && (
+                            <div className="booking-badge-dropdown">
+                              {bookingCount}
                             </div>
                           )}
                         </div>
@@ -330,6 +377,9 @@ const Header: React.FC<HeaderProps> = ({
                         >
                           <i className="fas fa-calendar-alt"></i> 
                           <span>Meus Agendamentos</span>
+                          {bookingCount > 0 && !isAdmin && (
+                            <span className="dropdown-badge booking-dropdown-badge">{bookingCount}</span>
+                          )}
                           {isAdmin && (
                             <span className="dropdown-item-lock">
                               <i className="fas fa-lock"></i>
@@ -344,7 +394,7 @@ const Header: React.FC<HeaderProps> = ({
                           >
                             <i className="fas fa-heart"></i> 
                             <span>Meus Favoritos</span>
-                            {wishlistCount > 0 && (
+                            {wishlistCount > 0 && bookingCount === 0 && (
                               <span className="dropdown-badge">{wishlistCount}</span>
                             )}
                           </button>
@@ -388,7 +438,7 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      <style >{`
+      <style>{`
         /* Estilos para a promo bar */
         .promo-bar {
           background: linear-gradient(90deg, #8B5CF6 0%, #7C3AED 100%);
@@ -445,7 +495,7 @@ const Header: React.FC<HeaderProps> = ({
           gap: 4px;
         }
 
-        /* Avatar Container - POSICIONAMENTO CORRIGIDO */
+        /* Avatar Container */
         .user-avatar-container {
           position: relative;
           width: 36px;
@@ -497,7 +547,7 @@ const Header: React.FC<HeaderProps> = ({
           box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
         }
 
-        /* ⭐⭐ COROA FORA DA FOTO - VISÍVEL! */
+        /* ⭐⭐ COROA FORA DA FOTO */
         .admin-badge-small {
           position: absolute;
           top: -2px;
@@ -514,6 +564,52 @@ const Header: React.FC<HeaderProps> = ({
           border: 1.5px solid white;
           z-index: 10;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Badge SIMPLES de Agendamento */
+        .booking-badge {
+          position: absolute;
+          top: -3px;
+          right: -3px;
+          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          color: white;
+          font-size: 9px;
+          font-weight: 700;
+          min-width: 15px;
+          height: 15px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid white;
+          z-index: 10;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Wishlist Indicator */
+        .wishlist-indicator {
+          position: absolute;
+          top: -3px;
+          right: -3px;
+          background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+          color: white;
+          font-size: 9px;
+          font-weight: 700;
+          min-width: 15px;
+          height: 15px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid white;
+          z-index: 2;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Quando tiver coroa E booking/wishlist */
+        .admin-badge-small + .booking-badge,
+        .admin-badge-small + .wishlist-indicator {
+          display: none;
         }
 
         /* Avatar Dropdown */
@@ -570,11 +666,38 @@ const Header: React.FC<HeaderProps> = ({
           box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
         }
 
+        /* Badge de Agendamento no Dropdown (SIMPLES) */
+        .booking-badge-dropdown {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          color: white;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+          border: 2px solid white;
+          z-index: 10;
+          box-shadow: 0 3px 8px rgba(16, 185, 129, 0.25);
+        }
+
         .admin-icon {
           margin-left: 4px;
           color: #fbbf24;
           font-size: 12px;
           text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Badge de agendamento no dropdown item */
+        .booking-dropdown-badge {
+          background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+          color: white !important;
+          box-shadow: 0 1px 4px rgba(16, 185, 129, 0.3);
         }
 
         /* MODAL ADMIN COM CORES DOURADAS */
@@ -633,31 +756,6 @@ const Header: React.FC<HeaderProps> = ({
 
         .site-item i {
           color: #8b5cf6 !important;
-        }
-
-        /* Wishlist Indicator */
-        .wishlist-indicator {
-          position: absolute;
-          top: -3px;
-          right: -3px;
-          background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-          color: white;
-          font-size: 9px;
-          font-weight: 700;
-          min-width: 15px;
-          height: 15px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1.5px solid white;
-          z-index: 2;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Quando tiver coroa E wishlist (não deveria acontecer, mas vamos garantir) */
-        .admin-badge-small + .wishlist-indicator {
-          display: none;
         }
 
         /* Itens desabilitados */
@@ -1168,6 +1266,23 @@ const Header: React.FC<HeaderProps> = ({
             border-width: 1px;
           }
 
+          /* Badge SIMPLES no mobile */
+          .booking-badge {
+            width: 14px;
+            height: 14px;
+            font-size: 8px;
+            top: -1px;
+            right: -1px;
+          }
+
+          .wishlist-indicator {
+            top: -2px;
+            right: -2px;
+            font-size: 8px;
+            min-width: 13px;
+            height: 13px;
+          }
+
           .dropdown-item[title]:hover::after {
             display: none;
           }
@@ -1227,6 +1342,15 @@ const Header: React.FC<HeaderProps> = ({
             right: 0px;
           }
 
+          /* Badge SIMPLES no mobile pequeno */
+          .booking-badge {
+            width: 12px;
+            height: 12px;
+            font-size: 7px;
+            top: 0px;
+            right: 0px;
+          }
+
           .wishlist-indicator {
             top: -2px;
             right: -2px;
@@ -1250,6 +1374,13 @@ const Header: React.FC<HeaderProps> = ({
             width: 18px;
             height: 18px;
             font-size: 8px;
+            border-width: 1.5px;
+          }
+
+          .booking-badge-dropdown {
+            width: 18px;
+            height: 18px;
+            font-size: 9px;
             border-width: 1.5px;
           }
 
@@ -1295,6 +1426,12 @@ const Header: React.FC<HeaderProps> = ({
             width: 11px;
             height: 11px;
             font-size: 5px;
+          }
+
+          .booking-badge {
+            width: 11px;
+            height: 11px;
+            font-size: 6px;
           }
 
           .cart-btn i {
