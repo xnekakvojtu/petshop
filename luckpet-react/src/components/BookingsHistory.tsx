@@ -1,6 +1,6 @@
-// src/components/BookingsHistory.tsx - VERSÃO CORRIGIDA
+// src/components/BookingsHistory.tsx - VERSÃO ATUALIZADA
 import React, { useState, useEffect, useCallback } from 'react';
-import { getUserBookings, cancelBooking, updatePaymentStatus } from '../firebase/bookings';
+import { getUserBookings, cancelBooking, updatePaymentStatus, updateBookingStatus } from '../firebase/bookings';
 import { Booking, PaymentMethod } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
@@ -287,9 +287,8 @@ const BookingsHistory: React.FC = () => {
     }
   };
 
-  // Obter detalhes do serviço - AGORA COM MAIS FALLBACKS INTELIGENTES
+  // Obter detalhes do serviço
   const getServiceDetails = (serviceId: string, booking: Booking) => {
-    // Se o serviceName já tem o nome completo, use ele
     if (booking.serviceName) {
       const serviceKey = Object.keys(serviceDetails).find(key => 
         serviceDetails[key as keyof typeof serviceDetails].title === booking.serviceName
@@ -307,7 +306,6 @@ const BookingsHistory: React.FC = () => {
       }
     }
     
-    // Tenta pegar pelo serviceId
     const serviceKey = serviceId as keyof typeof serviceDetails;
     const detailedService = serviceDetails[serviceKey];
     
@@ -321,7 +319,6 @@ const BookingsHistory: React.FC = () => {
       };
     }
     
-    // Fallback baseado no nome do serviço no booking
     const serviceName = booking.serviceName || '';
     
     if (serviceName.includes('Banho') || serviceName.includes('banho')) {
@@ -336,7 +333,6 @@ const BookingsHistory: React.FC = () => {
       return serviceDetails['consulta'];
     }
     
-    // Fallback genérico baseado no serviceId
     if (serviceId.includes('banho')) {
       return serviceDetails['banho'];
     }
@@ -349,7 +345,6 @@ const BookingsHistory: React.FC = () => {
       return serviceDetails['consulta'];
     }
     
-    // Último fallback
     return serviceDetails['default'];
   };
 
@@ -364,16 +359,82 @@ const BookingsHistory: React.FC = () => {
     return configs[status] || configs.pending;
   };
 
+  // Status de pagamento
+  const getPaymentStatusConfig = (paymentStatus?: string) => {
+    const configs = {
+      pending: { text: 'Aguardando pagamento', color: '#F59E0B', bg: '#FEF3C7' },
+      paid: { text: 'Pago', color: '#10B981', bg: '#D1FAE5' },
+      failed: { text: 'Falha no pagamento', color: '#EF4444', bg: '#FEE2E2' },
+      refunded: { text: 'Reembolsado', color: '#6B7280', bg: '#F3F4F6' }
+    };
+    
+    return configs[paymentStatus as keyof typeof configs] || 
+           { text: 'Status não definido', color: '#9CA3AF', bg: '#F3F4F6' };
+  };
+
   // Método de pagamento
   const getPaymentMethod = (method?: PaymentMethod) => {
     const methods: Record<string, { text: string, icon: string }> = {
       pix: { text: 'PIX', icon: 'fas fa-qrcode' },
-      credit_card: { text: 'Cartão', icon: 'fas fa-credit-card' },
-      debit_card: { text: 'Débito', icon: 'fas fa-credit-card' },
+      credit_card: { text: 'Cartão de Crédito', icon: 'fas fa-credit-card' },
+      debit_card: { text: 'Cartão de Débito', icon: 'fas fa-credit-card' },
       money: { text: 'Dinheiro', icon: 'fas fa-money-bill-wave' },
       luckcoins: { text: 'LuckCoins', icon: 'fas fa-coins' }
     };
     return methods[method || ''] || { text: 'Não definido', icon: 'fas fa-question-circle' };
+  };
+
+  // ✅ Função para ADMIN marcar como concluído (com pagamento automático)
+  const handleCompleteBooking = async (bookingId: string) => {
+    if (!confirm('Marcar este agendamento como concluído? O pagamento também será marcado como pago.')) return;
+
+    try {
+      // Atualizar status do agendamento para 'completed'
+      await updateBookingStatus(bookingId, 'completed');
+      
+      // Se o pagamento não for com LuckCoins e ainda estiver pendente, marcar como pago
+      const booking = bookings.find(b => b.id === bookingId);
+      if (booking && booking.paymentMethod !== 'luckcoins' && booking.paymentStatus === 'pending') {
+        await updatePaymentStatus(bookingId, 'paid');
+      }
+      
+      // Recarregar os agendamentos
+      await loadBookings();
+      
+      window.dispatchEvent(new CustomEvent('notification', {
+        detail: { 
+          message: 'Agendamento marcado como concluído! Pagamento atualizado.', 
+          type: 'success' 
+        }
+      }));
+    } catch (err: any) {
+      console.error('Erro ao completar agendamento:', err);
+      window.dispatchEvent(new CustomEvent('notification', {
+        detail: { 
+          message: 'Erro ao completar agendamento', 
+          type: 'error' 
+        }
+      }));
+    }
+  };
+
+  // ✅ Função para ADMIN marcar apenas o pagamento
+  const handleMarkAsPaid = async (bookingId: string) => {
+    if (!confirm('Marcar pagamento como realizado?')) return;
+
+    try {
+      await updatePaymentStatus(bookingId, 'paid');
+      await loadBookings();
+      
+      window.dispatchEvent(new CustomEvent('notification', {
+        detail: { 
+          message: 'Pagamento marcado como pago!', 
+          type: 'success' 
+        }
+      }));
+    } catch (err) {
+      console.error('Erro ao marcar como pago:', err);
+    }
   };
 
   // Render loading
@@ -441,6 +502,7 @@ const BookingsHistory: React.FC = () => {
         {bookings.map((booking) => {
           const service = getServiceDetails(booking.serviceId, booking);
           const statusConfig = getStatusConfig(booking.status);
+          const paymentStatusConfig = getPaymentStatusConfig(booking.paymentStatus);
           const paymentMethod = getPaymentMethod(booking.paymentMethod);
 
           return (
@@ -472,7 +534,7 @@ const BookingsHistory: React.FC = () => {
                 </div>
               </div>
 
-              {/* Detalhes ESPECÍFICOS do serviço */}
+              {/* Detalhes do serviço */}
               <div className="service-features">
                 <h4>Este serviço inclui:</h4>
                 <div className="features-grid">
@@ -503,7 +565,7 @@ const BookingsHistory: React.FC = () => {
                   </span>
                 </div>
 
-                {/* ⭐⭐ ADICIONADO: TELEFONE DO CLIENTE ⭐⭐ */}
+                {/* Telefone do cliente */}
                 {booking.customerPhone && (
                   <div className="detail-row">
                     <span className="detail-label">Telefone:</span>
@@ -527,13 +589,32 @@ const BookingsHistory: React.FC = () => {
                   <span className="detail-value">
                     <i className={paymentMethod.icon}></i>
                     {paymentMethod.text}
-                    {booking.paymentStatus === 'pending' && booking.paymentMethod !== 'luckcoins' && (
-                      <span className="payment-pending"> • Aguardando</span>
-                    )}
-                    {booking.paymentMethod === 'luckcoins' && (
+                    
+                    {/* ✅ AGORA MOSTRA O STATUS DO PAGAMENTO DE FORMA MAIS CLARA */}
+                    {booking.paymentMethod !== 'luckcoins' ? (
+                      <span 
+                        className="payment-status-badge"
+                        style={{
+                          backgroundColor: paymentStatusConfig.bg,
+                          color: paymentStatusConfig.color
+                        }}
+                      >
+                        • {paymentStatusConfig.text}
+                      </span>
+                    ) : (
                       <span className="luckcoins-badge-small">
                         <i className="fas fa-coins"></i>
                         {booking.servicePrice} LC
+                        <span 
+                          className="payment-status-badge"
+                          style={{
+                            backgroundColor: paymentStatusConfig.bg,
+                            color: paymentStatusConfig.color,
+                            marginLeft: '8px'
+                          }}
+                        >
+                          • {paymentStatusConfig.text}
+                        </span>
                       </span>
                     )}
                   </span>
@@ -557,7 +638,8 @@ const BookingsHistory: React.FC = () => {
                 </div>
 
                 <div className="actions">
-                  {booking.status === 'pending' && (
+                  {/* Botão Cancelar para clientes */}
+                  {booking.status === 'pending' && user?.role !== 'admin' && (
                     <button 
                       className="action-btn cancel-btn"
                       onClick={() => handleCancelBooking(booking.id)}
@@ -566,32 +648,34 @@ const BookingsHistory: React.FC = () => {
                     </button>
                   )}
                   
-                  {/* ⭐⭐ CORRIGIDO: Botão "Marcar Pago" aparece apenas para admin */}
-                  {user?.role === 'admin' && 
-                   booking.status === 'pending' && 
-                   booking.paymentStatus === 'pending' && 
-                   booking.paymentMethod !== 'luckcoins' && (
-                    <button 
-                      className="action-btn pay-btn"
-                      onClick={async () => {
-                        try {
-                          await updatePaymentStatus(booking.id, 'paid');
-                          await loadBookings();
-                          window.dispatchEvent(new CustomEvent('notification', {
-                            detail: { 
-                              message: 'Pagamento marcado como pago!', 
-                              type: 'success' 
-                            }
-                          }));
-                        } catch (err) {
-                          console.error('Erro ao marcar como pago:', err);
-                        }
-                      }}
-                    >
-                      Marcar Pago
-                    </button>
+                  {/* ✅ AÇÕES ESPECIAIS PARA ADMIN */}
+                  {user?.role === 'admin' && (
+                    <>
+                      {/* Botão "Marcar Pago" - apenas para pagamentos pendentes */}
+                      {booking.paymentStatus === 'pending' && booking.paymentMethod !== 'luckcoins' && (
+                        <button 
+                          className="action-btn pay-btn"
+                          onClick={() => handleMarkAsPaid(booking.id)}
+                        >
+                          <i className="fas fa-check-circle"></i>
+                          Marcar Pago
+                        </button>
+                      )}
+                      
+                      {/* Botão "Concluir Agendamento" - aparece para agendamentos confirmados */}
+                      {booking.status === 'confirmed' && (
+                        <button 
+                          className="action-btn complete-btn"
+                          onClick={() => handleCompleteBooking(booking.id)}
+                        >
+                          <i className="fas fa-check"></i>
+                          Concluir
+                        </button>
+                      )}
+                    </>
                   )}
                   
+                  {/* Botão Detalhes para todos */}
                   <button 
                     className="action-btn details-btn"
                     onClick={() => {
@@ -602,7 +686,8 @@ const BookingsHistory: React.FC = () => {
                             `Inclui: ${service.features.join(', ')}\n` +
                             `Data: ${formatDate(booking.date)} às ${booking.time}\n` +
                             `Status: ${statusConfig.text}\n` +
-                            `Pagamento: ${paymentMethod.text}`;
+                            `Pagamento: ${paymentMethod.text}\n` +
+                            `Status Pagamento: ${paymentStatusConfig.text}`;
                       
                       if (booking.customerPhone) {
                         details += `\nTelefone: ${booking.customerPhone}`;
@@ -619,6 +704,7 @@ const BookingsHistory: React.FC = () => {
                       alert(details);
                     }}
                   >
+                    <i className="fas fa-info-circle"></i>
                     Detalhes
                   </button>
                 </div>
@@ -767,6 +853,18 @@ const BookingsHistory: React.FC = () => {
           white-space: nowrap;
         }
 
+        /* ✅ NOVO: Badge de status de pagamento */
+        .payment-status-badge {
+          margin-left: 8px;
+          padding: 3px 10px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+
         /* Service Features */
         .service-features {
           padding: 20px 24px;
@@ -855,22 +953,17 @@ const BookingsHistory: React.FC = () => {
           color: #7C3AED;
         }
 
-        .payment-pending {
-          color: #F59E0B;
-          font-weight: 500;
-        }
-
-        /* ⭐⭐ NOVO: Badge de LuckCoins pequeno */
+        /* Badge de LuckCoins pequeno */
         .luckcoins-badge-small {
           background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
           color: white;
-          padding: 2px 8px;
+          padding: 4px 10px;
           border-radius: 12px;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 600;
           display: inline-flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
           margin-left: 8px;
         }
 
@@ -901,7 +994,7 @@ const BookingsHistory: React.FC = () => {
           color: #10B981;
         }
 
-        /* ⭐⭐ NOVO: Estilo para preço em LuckCoins */
+        /* Estilo para preço em LuckCoins */
         .luckcoins-price {
           background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
           color: white;
@@ -933,6 +1026,9 @@ const BookingsHistory: React.FC = () => {
           cursor: pointer;
           transition: all 0.2s ease;
           white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .cancel-btn {
@@ -951,6 +1047,15 @@ const BookingsHistory: React.FC = () => {
 
         .pay-btn:hover {
           background: #A7F3D0;
+        }
+
+        .complete-btn {
+          background: #3B82F6;
+          color: white;
+        }
+
+        .complete-btn:hover {
+          background: #2563EB;
         }
 
         .details-btn {
@@ -1125,6 +1230,7 @@ const BookingsHistory: React.FC = () => {
 
           .action-btn {
             width: 100%;
+            justify-content: center;
           }
 
           .detail-row {
@@ -1145,6 +1251,11 @@ const BookingsHistory: React.FC = () => {
           .primary-btn {
             width: 100%;
             padding: 14px 24px;
+          }
+          
+          .payment-status-badge {
+            margin-top: 4px;
+            align-self: flex-start;
           }
         }
 
