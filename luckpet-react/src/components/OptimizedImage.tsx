@@ -1,5 +1,4 @@
-// src/components/OptimizedImage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface OptimizedImageProps {
   src: string;
@@ -7,9 +6,12 @@ interface OptimizedImageProps {
   className?: string;
   width?: number;
   height?: number;
-  placeholder?: string;
   lazy?: boolean;
+  fallbackSrc?: string;
 }
+
+const DEFAULT_FALLBACK =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="100%" height="100%" fill="%238B5CF6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Arial" font-size="24">IMG</text></svg>';
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
@@ -17,47 +19,30 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   className = '',
   width,
   height,
-  placeholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E',
-  lazy = true
+  lazy = true,
+  fallbackSrc = DEFAULT_FALLBACK,
 }) => {
+  const [currentSrc, setCurrentSrc] = useState(src);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(placeholder);
-
-  useEffect(() => {
-    const img = new Image();
-    
-    img.src = src;
-    img.onload = () => {
-      setImageSrc(src);
-      setIsLoaded(true);
-    };
-    
-    img.onerror = () => {
-      setHasError(true);
-      // Fallback para placeholder genérico baseado no texto
-      const fallbackText = alt.substring(0, 2).toUpperCase();
-      setImageSrc(`https://via.placeholder.com/${width || 300}x${height || 300}/8B5CF6/FFFFFF?text=${fallbackText}`);
-    };
-
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [src, alt, width, height]);
 
   return (
     <img
-      src={imageSrc}
+      src={currentSrc}
       alt={alt}
       className={`${className} ${isLoaded ? 'loaded' : 'loading'}`}
       width={width}
       height={height}
       loading={lazy ? 'lazy' : 'eager'}
       decoding="async"
+      onLoad={() => setIsLoaded(true)}
+      onError={() => {
+        if (currentSrc !== fallbackSrc) {
+          setCurrentSrc(fallbackSrc);
+        }
+      }}
       style={{
-        opacity: isLoaded ? 1 : 0,
-        transition: 'opacity 0.3s ease-in-out'
+        opacity: isLoaded ? 1 : 0.98,
+        transition: 'opacity 0.2s ease-in-out',
       }}
     />
   );
