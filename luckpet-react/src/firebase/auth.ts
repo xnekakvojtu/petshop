@@ -7,7 +7,8 @@ import {
   onAuthStateChanged,
   updateProfile,
   User as FirebaseUser,
-  sendEmailVerification
+  sendEmailVerification,
+  sendPasswordResetEmail // ⭐ ADICIONADO
 } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { auth, db } from "./index";
@@ -182,6 +183,17 @@ export const logout = async (): Promise<void> => {
     console.log('✅ Logout do Firebase realizado');
   } catch (error) {
     console.error('❌ Erro no logout:', error);
+    throw error;
+  }
+};
+
+// ⭐ NOVA FUNÇÃO: REDEFINIR SENHA (ESQUECI MINHA SENHA)
+export const resetPassword = async (email: string): Promise<void> => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    console.log('✅ Email de redefinição de senha enviado para:', email);
+  } catch (error) {
+    console.error('❌ Erro ao enviar redefinição de senha:', error);
     throw error;
   }
 };

@@ -1,4 +1,4 @@
-// src/hooks/useAuth.ts - VERSÃO CORRIGIDA (CONSOME O CONTEXTO)
+// src/hooks/useAuth.ts - VERSÃO CORRIGIDA COM RESET PASSWORD
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { User } from '../types';
@@ -6,7 +6,8 @@ import {
   loginWithEmail as firebaseLogin,
   registerWithEmail as firebaseRegister,
   loginWithGoogle as firebaseGoogleLogin,
-  logout as firebaseLogout
+  logout as firebaseLogout,
+  resetPassword as firebaseResetPassword // ⭐ ADICIONADO
 } from '../firebase/auth';
 
 // Hook personalizado que consome o AuthContext
@@ -34,6 +35,18 @@ export const useAuth = () => {
   // Função para adicionar créditos iniciais (wapper)
   const addInitialCredits = () => {
     addCredits(200);
+  };
+
+  // ⭐ NOVA FUNÇÃO: Reset de senha
+  const handleResetPassword = async (email: string): Promise<void> => {
+    try {
+      console.log('useAuth: Enviando email de redefinição de senha para:', email);
+      await firebaseResetPassword(email);
+      console.log('useAuth: Email de redefinição enviado com sucesso');
+    } catch (error) {
+      console.error('useAuth: Erro ao redefinir senha:', error);
+      throw error;
+    }
   };
 
   // Funções Firebase que usam o contexto
@@ -179,5 +192,6 @@ export const useAuth = () => {
     loginWithEmail: handleLoginWithEmail,
     registerWithEmail: handleRegisterWithEmail,
     loginWithGoogle: handleLoginWithGoogle,
+    resetPassword: handleResetPassword, // ⭐ ADICIONADO AO RETORNO
   };
 };
