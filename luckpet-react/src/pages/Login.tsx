@@ -1,4 +1,4 @@
-// src/pages/Login.tsx - COMPLETO E ATUALIZADO
+// src/pages/Login.tsx - COMPLETO E ATUALIZADO COM RECUPERAÇÃO DE SENHA
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -6,7 +6,7 @@ import { User } from '../types';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loginWithEmail, registerWithEmail, loginWithGoogle } = useAuth();
+  const { login, loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +36,36 @@ const Login: React.FC = () => {
       [name]: value
     }));
     setError('');
+  };
+
+  // ⭐ NOVA FUNÇÃO: Recuperação de senha
+  const handleForgotPassword = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!formData.email) {
+      setError('Digite seu email para redefinir a senha');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await resetPassword(formData.email);
+      setSuccess('Enviamos um link para redefinir sua senha no seu email.');
+    } catch (err: any) {
+      console.error('Erro ao recuperar senha:', err);
+      
+      if (err.code === 'auth/user-not-found') {
+        setError('Nenhuma conta encontrada com esse email');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Email inválido');
+      } else {
+        setError('Não foi possível enviar o email de redefinição');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,9 +214,9 @@ const Login: React.FC = () => {
     
     setSuccess('Entrando como Administrador...');
     setTimeout(() => {
-  navigate('/#/admin'); // ⬅️ MUDE PARA "/#/admin"
-  window.location.reload();
-}, 1000);
+      navigate('/#/admin');
+      window.location.reload();
+    }, 1000);
   };
 
   return (
@@ -316,9 +346,15 @@ const Login: React.FC = () => {
                 <input type="checkbox" />
                 <span>Lembrar de mim</span>
               </label>
-              <a href="#" className="forgot-password">
+              {/* ⭐ SUBSTITUÍDO LINK POR BOTÃO */}
+              <button
+                type="button"
+                className="forgot-password"
+                onClick={handleForgotPassword}
+                disabled={loading}
+              >
                 Esqueceu a senha?
-              </a>
+              </button>
             </div>
           )}
 
@@ -609,18 +645,27 @@ const Login: React.FC = () => {
           border-color: #8B5CF6;
         }
 
+        /* ⭐ CSS ATUALIZADO PARA O BOTÃO DE ESQUECEU A SENHA */
         .forgot-password {
+          background: none;
+          border: none;
           color: #8B5CF6;
           text-decoration: none;
           font-size: 15px;
           font-weight: 600;
           transition: all 0.2s;
           padding: 4px 0;
+          cursor: pointer;
         }
 
-        .forgot-password:hover {
+        .forgot-password:hover:not(:disabled) {
           text-decoration: underline;
           transform: translateY(-1px);
+        }
+
+        .forgot-password:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .btn-primary {

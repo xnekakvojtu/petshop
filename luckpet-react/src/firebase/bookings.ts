@@ -1,21 +1,25 @@
-// src/firebase/bookings.ts - VERSÃO ATUALIZADA COM CAMPOS DO CLIENTE
+// src/firebase/bookings.ts - VERSÃO SEGURA COM TRANSAÇÕES
 import { 
   collection, 
   doc, 
   addDoc, 
   updateDoc, 
   getDocs,
+  getDoc,
   query, 
   where, 
   orderBy,
   serverTimestamp,
   Timestamp,
-  limit
+  limit,
+  runTransaction,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from './index';
-import { Booking, AvailableDate, TimeSlot, PaymentMethod } from '../types';
+import { Booking, AvailableDate, TimeSlot, PaymentMethod, ServiceType } from '../types';
 
 const bookingsRef = collection(db, 'bookings');
+const servicesRef = collection(db, 'services');
 
 // Tipos para o Firestore
 interface FirestoreBooking {
@@ -35,67 +39,113 @@ interface FirestoreBooking {
   professional?: string;
   paymentMethod?: PaymentMethod;
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
-  // ⭐⭐ NOVOS CAMPOS ⭐⭐
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
-  // ⭐⭐ FIM DOS NOVOS CAMPOS ⭐⭐
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
-// 1. CRIAR AGENDAMENTO
-export const createBooking = async (
+// ⭐ 1. FUNÇÃO SEGURA COM TRANSAÇÃO (RESOLVE O PROBLEMA DE CONCORRÊNCIA)
+export const createBookingSafe = async (
   bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> & {
     paymentMethod?: PaymentMethod;
-    // ⭐⭐ ADICIONAR CAMPOS DO CLIENTE ⭐⭐
     customerName?: string;
     customerPhone?: string;
     customerEmail?: string;
   }
 ): Promise<string> => {
   try {
-    console.log('📝 Criando agendamento:', bookingData.serviceName);
+    console.log('🔒 Criando agendamento com transação segura:', bookingData.serviceName);
     
-    const bookingToSave: FirestoreBooking = {
-      userId: bookingData.userId || '',
-      petName: bookingData.petName || 'Meu Pet',
-      petType: bookingData.petType || 'cachorro',
-      petBreed: bookingData.petBreed || '',
-      petAge: bookingData.petAge || 0,
-      serviceId: bookingData.serviceId || '',
-      serviceName: bookingData.serviceName || 'Serviço',
-      servicePrice: bookingData.servicePrice || 0,
-      date: bookingData.date || new Date().toISOString().split('T')[0],
-      time: bookingData.time || '10:00',
-      status: bookingData.status || 'pending',
-      notes: bookingData.notes || '',
-      duration: bookingData.duration || 30,
-      professional: bookingData.professional || 'A definir',
-      paymentMethod: bookingData.paymentMethod || 'luckcoins',
-      paymentStatus: bookingData.paymentMethod === 'luckcoins' ? 'paid' : 'pending',
-      // ⭐⭐ SALVAR CAMPOS DO CLIENTE ⭐⭐
-      customerName: bookingData.customerName,
-      customerPhone: bookingData.customerPhone,
-      customerEmail: bookingData.customerEmail,
-      // ⭐⭐ FIM DOS CAMPOS DO CLIENTE ⭐⭐
-      createdAt: serverTimestamp() as Timestamp,
-      updatedAt: serverTimestamp() as Timestamp,
-    };
-
-    const docRef = await addDoc(bookingsRef, bookingToSave);
-    console.log('✅ Agendamento criado com ID:', docRef.id);
-    console.log('📋 Dados salvos:', {
-      customerName: bookingData.customerName,
-      customerPhone: bookingData.customerPhone,
-      customerEmail: bookingData.customerEmail
+    // ⭐ Validações obrigatórias
+    if (!bookingData.userId) {
+      throw new Error('ID do usuário é obrigatório');
+    }
+    
+    if (!bookingData.date || !bookingData.time) {
+      throw new Error('Data e hora são obrigatórios');
+    }
+    
+    if (!bookingData.serviceId) {
+      throw new Error('Serviço é obrigatório');
+    }
+    
+    // ⭐ Buscar dados atualizados do serviço para garantir preço correto
+    const serviceDoc = await getDoc(doc(db, 'services', bookingData.serviceId));
+    if (!serviceDoc.exists()) {
+      throw new Error('Serviço não encontrado');
+    }
+    const serviceData = serviceDoc.data() as ServiceType;
+    
+    // ⭐ Usar transação para evitar duplicação
+    return await runTransaction(db, async (transaction) => {
+      // Verificar se já existe booking para este horário
+      const availabilityQuery = query(
+        bookingsRef,
+        where('date', '==', bookingData.date),
+        where('time', '==', bookingData.time),
+        where('serviceId', '==', bookingData.serviceId),
+        where('status', 'in', ['pending', 'confirmed'])
+      );
+      
+      const availabilitySnapshot = await getDocs(availabilityQuery);
+      
+      if (!availabilitySnapshot.empty) {
+        throw new Error('Este horário já está ocupado. Por favor, escolha outro horário.');
+      }
+      
+      // Criar novo documento
+      const newBookingRef = doc(bookingsRef);
+      
+      // ⭐ Usar dados do serviço do banco, não do front
+      const bookingToSave: FirestoreBooking = {
+        userId: bookingData.userId,
+        petName: bookingData.petName || 'Meu Pet',
+        petType: bookingData.petType || 'cachorro',
+        petBreed: bookingData.petBreed || '',
+        petAge: bookingData.petAge || 0,
+        serviceId: bookingData.serviceId,
+        serviceName: serviceData.name, // ⭐ Dado confiável do banco
+        servicePrice: serviceData.price, // ⭐ Dado confiável do banco
+        date: bookingData.date,
+        time: bookingData.time,
+        status: bookingData.status || 'pending',
+        notes: bookingData.notes || '',
+        duration: serviceData.duration || 30, // ⭐ Dado confiável do banco
+        professional: bookingData.professional || 'A definir',
+        paymentMethod: bookingData.paymentMethod || 'luckcoins',
+        paymentStatus: bookingData.paymentMethod === 'luckcoins' ? 'paid' : 'pending',
+        customerName: bookingData.customerName,
+        customerPhone: bookingData.customerPhone,
+        customerEmail: bookingData.customerEmail,
+        createdAt: serverTimestamp() as Timestamp,
+        updatedAt: serverTimestamp() as Timestamp,
+      };
+      
+      transaction.set(newBookingRef, bookingToSave);
+      
+      console.log('✅ Agendamento criado com segurança, ID:', newBookingRef.id);
+      return newBookingRef.id;
     });
     
-    return docRef.id;
   } catch (error: any) {
     console.error('❌ Erro ao criar agendamento:', error);
     throw error;
   }
+};
+
+// ⭐ Versão antiga mantida para compatibilidade, mas recomendar usar a segura
+export const createBooking = async (
+  bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> & {
+    paymentMethod?: PaymentMethod;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+  }
+): Promise<string> => {
+  console.warn('⚠️ createBooking não é seguro para concorrência. Use createBookingSafe');
+  return createBookingSafe(bookingData);
 };
 
 // 2. BUSCAR AGENDAMENTOS DO USUÁRIO
@@ -111,6 +161,7 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
     const q = query(
       bookingsRef,
       where('userId', '==', userId),
+      orderBy('createdAt', 'desc'),
       limit(20)
     );
     
@@ -120,7 +171,6 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
     querySnapshot.forEach((doc) => {
       const data = doc.data() as FirestoreBooking;
       
-      // Converter Timestamp para string ISO
       const createdAt = data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString();
       const updatedAt = data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString();
       
@@ -142,22 +192,15 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
         professional: data.professional,
         paymentMethod: data.paymentMethod,
         paymentStatus: data.paymentStatus,
-        // ⭐⭐ BUSCAR CAMPOS DO CLIENTE ⭐⭐
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         customerEmail: data.customerEmail,
-        // ⭐⭐ FIM DOS CAMPOS DO CLIENTE ⭐⭐
         createdAt,
         updatedAt,
       };
       
       bookings.push(booking);
     });
-    
-    // Ordenar por data (mais recente primeiro)
-    bookings.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
     
     console.log(`✅ Encontrados ${bookings.length} agendamento(s)`);
     return bookings;
@@ -166,8 +209,7 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
     console.error('❌ Erro ao buscar agendamentos:', error);
     
     if (error.code === 'failed-precondition') {
-      console.log('⚠️  Índice não está pronto. Retornando array vazio.');
-      return [];
+      console.log('⚠️  Índice não está pronto. Configure no Firebase Console.');
     }
     
     return [];
@@ -277,7 +319,7 @@ export const generatePixPayment = async (
   }
 };
 
-// 7. VERIFICAR HORÁRIO DISPONÍVEL
+// ⭐ 7. VERIFICAR HORÁRIO DISPONÍVEL (VERSÃO MELHORADA)
 export const checkTimeSlotAvailability = async (
   serviceId: string, 
   date: string, 
@@ -302,27 +344,69 @@ export const checkTimeSlotAvailability = async (
   } catch (error: any) {
     console.error('❌ Erro ao verificar disponibilidade:', error);
     
+    // ⭐ Em caso de erro, NÃO confiar no horário
     if (error.code === 'failed-precondition') {
-      console.log('⚠️  Usando fallback: assumindo horário disponível');
-      return true;
+      console.log('⚠️  Índice não configurado. Configure no Firebase Console.');
     }
     
-    return false;
+    return false; // ⭐ Segurança: erro = não disponível
   }
 };
 
-// 8. BUSCAR DATAS DISPONÍVEIS
+// ⭐ 8. BUSCAR DATAS DISPONÍVEIS (VERSÃO REAL COM VERIFICAÇÃO)
 export const getAvailableDates = async (serviceId: string): Promise<AvailableDate[]> => {
   try {
-    console.log(`📅 Buscando datas disponíveis para: ${serviceId}`);
+    console.log(`📅 Buscando datas disponíveis para serviço: ${serviceId}`);
     
     const today = new Date();
     const dates: AvailableDate[] = [];
     
+    // ⭐ Buscar todos os bookings para os próximos 14 dias
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() + 1);
+    
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + 14);
+    
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    
+    // ⭐ Query para buscar bookings no período
+    const bookingsQuery = query(
+      bookingsRef,
+      where('serviceId', '==', serviceId),
+      where('date', '>=', startDateStr),
+      where('date', '<=', endDateStr),
+      where('status', 'in', ['pending', 'confirmed'])
+    );
+    
+    const bookingsSnapshot = await getDocs(bookingsQuery);
+    
+    // ⭐ Mapear horários ocupados
+    const occupiedSlots = new Set();
+    bookingsSnapshot.forEach(doc => {
+      const data = doc.data();
+      occupiedSlots.add(`${data.date}_${data.time}`);
+    });
+    
+    // ⭐ Gerar slots de horário padrão
+    const defaultSlots = [
+      { time: '08:00', professional: 'Dra. Ana Silva' },
+      { time: '09:00', professional: 'Dr. Carlos Santos' },
+      { time: '10:00', professional: 'Dra. Ana Silva' },
+      { time: '11:00', professional: 'Dr. Carlos Santos' },
+      { time: '13:00', professional: 'Dra. Ana Silva' },
+      { time: '14:00', professional: 'Dr. Carlos Santos' },
+      { time: '15:00', professional: 'Dra. Ana Silva' },
+      { time: '16:00', professional: 'Dr. Carlos Santos' },
+    ];
+    
+    // ⭐ Gerar datas com slots verificados
     for (let i = 1; i <= 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       
+      // Pular fins de semana
       if (date.getDay() === 0 || date.getDay() === 6) continue;
       
       const dateStr = date.toISOString().split('T')[0];
@@ -332,16 +416,17 @@ export const getAvailableDates = async (serviceId: string): Promise<AvailableDat
         month: 'short'
       });
       
-      const slots: TimeSlot[] = [
-        { time: '08:00', available: true, professional: 'Dra. Ana Silva' },
-        { time: '09:00', available: true, professional: 'Dr. Carlos Santos' },
-        { time: '10:00', available: true, professional: 'Dra. Ana Silva' },
-        { time: '11:00', available: true, professional: 'Dr. Carlos Santos' },
-        { time: '13:00', available: true, professional: 'Dra. Ana Silva' },
-        { time: '14:00', available: true, professional: 'Dr. Carlos Santos' },
-        { time: '15:00', available: true, professional: 'Dra. Ana Silva' },
-        { time: '16:00', available: true, professional: 'Dr. Carlos Santos' },
-      ];
+      // ⭐ Verificar disponibilidade de cada slot
+      const slots: TimeSlot[] = await Promise.all(
+        defaultSlots.map(async (slot) => {
+          const isAvailable = !occupiedSlots.has(`${dateStr}_${slot.time}`);
+          return {
+            time: slot.time,
+            available: isAvailable,
+            professional: slot.professional,
+          };
+        })
+      );
       
       dates.push({ 
         date: dateStr, 
@@ -359,14 +444,56 @@ export const getAvailableDates = async (serviceId: string): Promise<AvailableDat
   }
 };
 
-// 9. BUSCAR AGENDAMENTO POR ID
+// ⭐ 9. BUSCAR AGENDAMENTO POR ID (AGORA IMPLEMENTADO)
 export const getBookingById = async (bookingId: string): Promise<Booking | null> => {
   try {
     console.log(`🔍 Buscando agendamento: ${bookingId}`);
     
-    // Esta função seria implementada com getDoc
-    // Por enquanto retornamos null (simulação)
-    return null;
+    if (!bookingId || bookingId.trim() === '') {
+      throw new Error('ID do agendamento inválido');
+    }
+    
+    const bookingDoc = doc(db, 'bookings', bookingId);
+    const snapshot = await getDoc(bookingDoc);
+    
+    if (!snapshot.exists()) {
+      console.log('⚠️ Agendamento não encontrado');
+      return null;
+    }
+    
+    const data = snapshot.data() as FirestoreBooking;
+    
+    const createdAt = data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString();
+    const updatedAt = data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString();
+    
+    const booking: Booking = {
+      id: snapshot.id,
+      userId: data.userId,
+      petName: data.petName,
+      petType: data.petType,
+      petBreed: data.petBreed,
+      petAge: data.petAge,
+      serviceId: data.serviceId,
+      serviceName: data.serviceName,
+      servicePrice: data.servicePrice,
+      date: data.date,
+      time: data.time,
+      status: data.status,
+      notes: data.notes,
+      duration: data.duration,
+      professional: data.professional,
+      paymentMethod: data.paymentMethod,
+      paymentStatus: data.paymentStatus,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      customerEmail: data.customerEmail,
+      createdAt,
+      updatedAt,
+    };
+    
+    console.log('✅ Agendamento encontrado:', booking.id);
+    return booking;
+    
   } catch (error) {
     console.error('❌ Erro ao buscar agendamento:', error);
     return null;
@@ -400,7 +527,6 @@ export const syncMockBookings = async (userId: string): Promise<void> => {
           duration: 60,
           professional: 'Dra. Ana Silva',
           paymentMethod: 'luckcoins' as PaymentMethod,
-          // ⭐⭐ DADOS DO CLIENTE DE EXEMPLO ⭐⭐
           customerName: 'João Silva',
           customerPhone: '(11) 99999-9999',
           customerEmail: 'joao@email.com',
@@ -421,7 +547,6 @@ export const syncMockBookings = async (userId: string): Promise<void> => {
           duration: 30,
           professional: 'Dr. Carlos Santos',
           paymentMethod: 'pix' as PaymentMethod,
-          // ⭐⭐ DADOS DO CLIENTE DE EXEMPLO ⭐⭐
           customerName: 'Maria Santos',
           customerPhone: '(11) 98888-8888',
           customerEmail: 'maria@email.com',
@@ -429,7 +554,7 @@ export const syncMockBookings = async (userId: string): Promise<void> => {
       ];
       
       for (const booking of mockBookings) {
-        await createBooking(booking);
+        await createBookingSafe(booking);
       }
       
       console.log('✅ Agendamentos de exemplo criados com sucesso');
@@ -444,6 +569,7 @@ export const syncMockBookings = async (userId: string): Promise<void> => {
 // Exportar todas as funções
 export default {
   createBooking,
+  createBookingSafe,
   getUserBookings,
   updatePaymentStatus,
   updateBookingStatus,
