@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface OptimizedImageProps {
   src: string;
@@ -24,6 +24,11 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setIsLoaded(false);
+  }, [src]);
 
   return (
     <img
