@@ -1,4 +1,4 @@
-// src/pages/Home.tsx
+// src/pages/Home.tsx - VERSÃO OTIMIZADA
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { products, services, plans } from '../data/products';
 import { addToCart, toggleWishlist, getWishlist } from '../utils/storage';
@@ -25,44 +25,35 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
 
-  // Produtos memoizados
+  // ⭐ Produtos memoizados com useMemo
   const clothingProducts = useMemo(() => 
     Object.values(products).filter(p => p.type === 'vestimenta'),
-    [products]
+    []
   );
 
   const foodProducts = useMemo(() =>
     Object.values(products).filter(p => p.type === 'alimento'),
-    [products]
+    []
   );
 
-  // Efeito de carregamento
+  // ⭐ Efeito de carregamento - otimizado
   useEffect(() => {
+    // Carregar wishlist
     const wishlistData = getWishlist();
     setWishlist(wishlistData);
     
+    // Verificar usuário novo
     const savedUser = localStorage.getItem('user');
-    const savedCredits = localStorage.getItem('userCredits');
-    
     if (localStorage.getItem('isNewUser') === 'true' && savedUser) {
       setShowWelcome(true);
     }
     
+    // Carregar créditos
+    const savedCredits = localStorage.getItem('userCredits');
     if (savedCredits) {
       setUserCredits(parseInt(savedCredits) || 0);
     }
-
-    // Pré-carregar imagens
-    const criticalImages = [
-      '/img/anuncios/racao-anuncio.jpg',
-      '/img/anuncios/acessorio-anuncio.jpg'
-    ];
-    
-    criticalImages.forEach(src => {
-      const img = new Image();
-      img.src = src;
-    });
-  }, []);
+  }, []); // ⭐ Sem dependências desnecessárias
 
   const closeWelcome = useCallback(() => {
     setShowWelcome(false);
@@ -81,8 +72,9 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
     addToCart(productId);
     showNotification(`${product.name} adicionado ao carrinho!`);
     
-    window.dispatchEvent(new Event('storage'));
-  }, [products, showNotification]);
+    // ⭐ REMOVIDO window.dispatchEvent(new Event('storage'));
+    // Isso causava re-render desnecessário
+  }, [showNotification]); // ⭐ products removido das dependências
 
   const handleToggleWishlist = useCallback((productId: string) => {
     const product = products[productId];
@@ -97,8 +89,8 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
       showNotification(`${product.name} removido dos favoritos!`, 'error');
     }
     
-    window.dispatchEvent(new Event('storage'));
-  }, [products, showNotification]);
+    // ⭐ REMOVIDO window.dispatchEvent(new Event('storage'));
+  }, [showNotification]); // ⭐ products removido das dependências
 
   return (
     <div className="home-page">
