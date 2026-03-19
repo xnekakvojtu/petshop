@@ -1,5 +1,5 @@
-// src/context/AuthContext.tsx - VERSÃO COMPLETA COM ADMIN
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -12,10 +12,11 @@ interface AuthContextType {
   deductCredits: (amount: number) => boolean;
   isLoggedIn: boolean;
   isGuest: boolean;
-  isAdmin: boolean; // ⭐ NOVO
+  isAdmin: boolean;
+  isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -24,23 +25,28 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [credits, setCredits] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const savedCredits = localStorage.getItem('userCredits');
-    
+
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
-        
-        // Se não tem créditos, dá 200 créditos iniciais
-        const userCredits = parsedUser.credits || (savedCredits ? parseInt(savedCredits) : 200);
+
+        let userCredits = parsedUser.credits;
+        if (savedCredits) {
+          const parsedCredits = Number(savedCredits);
+          userCredits = Number.isFinite(parsedCredits) ? parsedCredits : 200;
+        } else {
+          userCredits = Number.isFinite(userCredits) ? userCredits : 200;
+        }
+
         setCredits(userCredits);
-        
-        // Atualiza localStorage com créditos
-        if (!parsedUser.credits) {
+
+        if (!parsedUser.credits || parsedUser.credits !== userCredits) {
           parsedUser.credits = userCredits;
           localStorage.setItem('user', JSON.stringify(parsedUser));
         }
@@ -53,18 +59,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setCredits(0);
       }
     } else {
-      // Verifica se é convidado
       const isGuest = localStorage.getItem('isGuest');
       if (isGuest) {
+        const guestId = localStorage.getItem('guestId') || 'guest_' + Date.now();
+        if (!localStorage.getItem('guestId')) {
+          localStorage.setItem('guestId', guestId);
+        }
+
         const guestUser: User = {
-          id: 'guest_' + Date.now(),
+          id: guestId,
           name: 'Convidado',
-          email: 'convidado@luckpet.com',
+          email: `convidado_${guestId}@luckpet.com`,
           credits: 100,
           isGuest: true,
           avatar: 'cachorro',
           role: 'user'
         };
+
         setUser(guestUser);
         setCredits(100);
         localStorage.setItem('user', JSON.stringify(guestUser));
@@ -72,23 +83,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
 
-    // Listener para mudanças no localStorage
+    setIsLoading(false);
+
     const handleStorageChange = () => {
       const updatedUser = localStorage.getItem('user');
       const updatedCredits = localStorage.getItem('userCredits');
-      
+
       if (updatedUser) {
         try {
           setUser(JSON.parse(updatedUser));
-        } catch (error) {
+        } catch {
           setUser(null);
         }
       } else {
         setUser(null);
       }
-      
+
       if (updatedCredits) {
-        setCredits(parseInt(updatedCredits));
+        const parsedCredits = Number(updatedCredits);
+        setCredits(Number.isFinite(parsedCredits) ? parsedCredits : 0);
       }
     };
 
@@ -97,13 +110,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (userData: User) => {
-    // Garantir que o usuário tenha role
     const userWithRole = {
       ...userData,
-      credits: userData.credits || 200,
-      role: userData.role || 'user' // ⭐ Garantir role
+      credits: Number.isFinite(userData.credits) ? userData.credits : 200,
+      role: userData.role || 'user'
     };
-    
+
     localStorage.setItem('user', JSON.stringify(userWithRole));
     localStorage.setItem('userCredits', userWithRole.credits.toString());
     setUser(userWithRole);
@@ -111,47 +123,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    const wasGuest = !!localStorage.getItem('isGuest');
+
     localStorage.removeItem('user');
     localStorage.removeItem('userCredits');
     localStorage.removeItem('isGuest');
-    // Não limpa carrinho e favoritos para convidados manterem
-    if (!localStorage.getItem('isGuest')) {
+    localStorage.removeItem('guestId');
+
+    if (!wasGuest) {
       localStorage.removeItem('carrinho');
       localStorage.removeItem('favoritos');
     }
+
     setUser(null);
     setCredits(0);
   };
 
   const updateCredits = (newCredits: number) => {
-    localStorage.setItem('userCredits', newCredits.toString());
-    setCredits(newCredits);
-    
-    // Atualiza também no objeto user
+    const safeCredits = Number.isFinite(newCredits) ? newCredits : 0;
+
+    localStorage.setItem('userCredits', safeCredits.toString());
+    setCredits(safeCredits);
+
     if (user) {
-      const updatedUser = { ...user, credits: newCredits };
+      const updatedUser = { ...user, credits: safeCredits };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
   const addCredits = (amount: number) => {
-    const newCredits = credits + amount;
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    const newCredits = credits + safeAmount;
     updateCredits(newCredits);
-    
-    // Notificação
+
     const event = new CustomEvent('notification', {
-      detail: { 
-        message: `+${amount} LuckCoins adicionados! Saldo: ${newCredits}`, 
-        type: 'success' 
+      detail: {
+        message: `+${safeAmount} LuckCoins adicionados! Saldo: ${newCredits}`,
+        type: 'success'
       }
     });
     window.dispatchEvent(event);
   };
 
   const deductCredits = (amount: number): boolean => {
-    if (credits >= amount) {
-      const newCredits = credits - amount;
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    if (credits >= safeAmount) {
+      const newCredits = credits - safeAmount;
       updateCredits(newCredits);
       return true;
     }
@@ -168,17 +186,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     deductCredits,
     isLoggedIn: !!user,
     isGuest: !!user?.isGuest,
-    isAdmin: user?.role === 'admin', // ⭐ CALCULA isAdmin
+    isAdmin: user?.role === 'admin',
+    isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-// Hook useAuth - deve ser usado dentro de AuthProvider
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth deve ser usado dentro de AuthProvider');
-  }
-  return context;
 };
