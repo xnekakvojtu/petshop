@@ -1,4 +1,4 @@
-// src/pages/Home.tsx - VERSÃO OTIMIZADA
+// src/pages/Home.tsx - VERSÃO COM MODO LEVE PARA TESTE
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { products, services, plans } from '../data/products';
 import { addToCart, toggleWishlist, getWishlist } from '../utils/storage';
@@ -20,12 +20,14 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
+  // ⭐ FLAG PARA MODO LEVE - ALTERE AQUI PARA TESTAR
+  const LIGHT_MODE = true; // true = modo leve, false = completo
+
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
 
-  // ⭐ Produtos memoizados com useMemo
   const clothingProducts = useMemo(() => 
     Object.values(products).filter(p => p.type === 'vestimenta'),
     []
@@ -36,24 +38,20 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
     []
   );
 
-  // ⭐ Efeito de carregamento - otimizado
   useEffect(() => {
-    // Carregar wishlist
     const wishlistData = getWishlist();
     setWishlist(wishlistData);
     
-    // Verificar usuário novo
     const savedUser = localStorage.getItem('user');
     if (localStorage.getItem('isNewUser') === 'true' && savedUser) {
       setShowWelcome(true);
     }
     
-    // Carregar créditos
     const savedCredits = localStorage.getItem('userCredits');
     if (savedCredits) {
       setUserCredits(parseInt(savedCredits) || 0);
     }
-  }, []); // ⭐ Sem dependências desnecessárias
+  }, []);
 
   const closeWelcome = useCallback(() => {
     setShowWelcome(false);
@@ -71,10 +69,7 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
 
     addToCart(productId);
     showNotification(`${product.name} adicionado ao carrinho!`);
-    
-    // ⭐ REMOVIDO window.dispatchEvent(new Event('storage'));
-    // Isso causava re-render desnecessário
-  }, [showNotification]); // ⭐ products removido das dependências
+  }, [showNotification]);
 
   const handleToggleWishlist = useCallback((productId: string) => {
     const product = products[productId];
@@ -88,13 +83,11 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
     } else {
       showNotification(`${product.name} removido dos favoritos!`, 'error');
     }
-    
-    // ⭐ REMOVIDO window.dispatchEvent(new Event('storage'));
-  }, [showNotification]); // ⭐ products removido das dependências
+  }, [showNotification]);
 
   return (
     <div className="home-page">
-      {/* Notificação */}
+      {/* Notificação - sempre visível */}
       {notification && (
         <Notification
           message={notification.message}
@@ -103,42 +96,46 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
         />
       )}
 
-      {/* Welcome Section */}
+      {/* Welcome Section - sempre visível quando necessário */}
       {showWelcome && <WelcomeSection onClose={closeWelcome} />}
 
-      {/* Background com patas */}
-      <div className="paw-background">
-        <div className="paw paw-1">🐾</div>
-        <div className="paw paw-2">🐾</div>
-        <div className="paw paw-3">🐾</div>
-        <div className="paw paw-4">🐾</div>
-        <div className="paw paw-5">🐾</div>
-        <div className="paw paw-6">🐾</div>
-        <div className="paw paw-7">🐾</div>
-        <div className="paw paw-8">🐾</div>
-      </div>
+      {/* ⭐ Background com patas - desligado no modo leve */}
+      {!LIGHT_MODE && (
+        <div className="paw-background">
+          <div className="paw paw-1">🐾</div>
+          <div className="paw paw-2">🐾</div>
+          <div className="paw paw-3">🐾</div>
+          <div className="paw paw-4">🐾</div>
+          <div className="paw paw-5">🐾</div>
+          <div className="paw paw-6">🐾</div>
+          <div className="paw paw-7">🐾</div>
+          <div className="paw paw-8">🐾</div>
+        </div>
+      )}
 
-      {/* Banners promocionais */}
+      {/* Banners promocionais - sempre visíveis */}
       <PromoBanners />
 
-      {/* Carrossel */}
-      <Carousel />
+      {/* ⭐ Carrossel - desligado no modo leve */}
+      {!LIGHT_MODE && <Carousel />}
 
-      {/* Categorias */}
+      {/* Categorias - sempre visíveis */}
       <CategoriesGrid />
 
-      {/* Seção de Moda Pet */}
+      {/* Seção de Moda Pet - limitada a 4 produtos no modo leve */}
       <section className="products-section paw-section" id="moda-pet">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Estilo Premium <span>Para Seu Pet</span></h2>
-            <a href="#todos" className="section-link">
-              Ver todos <i className="fas fa-arrow-right"></i>
-            </a>
+            {!LIGHT_MODE && (
+              <a href="#todos" className="section-link">
+                Ver todos <i className="fas fa-arrow-right"></i>
+              </a>
+            )}
           </div>
           
           <div className="products-grid">
-            {clothingProducts.map((product, index) => (
+            {clothingProducts.slice(0, LIGHT_MODE ? 4 : clothingProducts.length).map((product, index) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -153,18 +150,20 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
         </div>
       </section>
 
-      {/* Seção de Nutrição Pet */}
+      {/* Seção de Nutrição Pet - limitada a 4 produtos no modo leve */}
       <section className="products-section alt paw-section" id="nutricao-pet">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Nutrição Balanceada <span>Para Uma Vida Saudável</span></h2>
-            <a href="#todos-alimentos" className="section-link">
-              Ver todos <i className="fas fa-arrow-right"></i>
-            </a>
+            {!LIGHT_MODE && (
+              <a href="#todos-alimentos" className="section-link">
+                Ver todos <i className="fas fa-arrow-right"></i>
+              </a>
+            )}
           </div>
           
           <div className="products-grid">
-            {foodProducts.map((product, index) => (
+            {foodProducts.slice(0, LIGHT_MODE ? 4 : foodProducts.length).map((product, index) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -179,14 +178,10 @@ const Home: React.FC<HomeProps> = ({ onServiceClick }) => {
         </div>
       </section>
 
-      {/* Seção de Serviços */}
-      <ServicesGrid services={services} onServiceClick={onServiceClick} />
-
-      {/* Seção de Curiosidades */}
-      <CuriosityGrid />
-
-      {/* Seção de Planos de Saúde */}
-      <PlansGrid plans={plans} userCredits={userCredits} />
+      {/* ⭐ Componentes pesados - desligados no modo leve */}
+      {!LIGHT_MODE && <ServicesGrid services={services} onServiceClick={onServiceClick} />}
+      {!LIGHT_MODE && <CuriosityGrid />}
+      {!LIGHT_MODE && <PlansGrid plans={plans} userCredits={userCredits} />}
     </div>
   );
 };

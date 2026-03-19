@@ -1,87 +1,25 @@
+/* src/pages/Home.css - VERSÃO PARA TESTE (ANIMAÇÕES DESLIGADAS) */
+
+/* ⭐ ANIMAÇÕES DESLIGADAS PARA TESTE */
+.paw {
+  animation: none !important;
+  opacity: 0.05; /* reduzido ainda mais */
+}
+
+.paw-background {
+  display: none !important; /* completamente desligado */
+}
+
+.paw-section::before {
+  display: none !important; /* completamente desligado */
+}
+
+/* Mantém o resto do CSS igual, mas com as animações desligadas */
 .home-page {
   min-height: 100vh;
   background: #f9fafb;
   position: relative;
   overflow-x: hidden;
-}
-
-/* Background com patas */
-.paw-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.15;
-}
-
-.paw {
-  position: absolute;
-  font-size: 48px;
-  opacity: 0.4;
-  user-select: none;
-}
-
-/* Posicionamento das patas */
-.paw-1 { top: 10%; left: 5%; transform: rotate(15deg); }
-.paw-2 { top: 25%; right: 8%; transform: rotate(-10deg); }
-.paw-3 { top: 40%; left: 12%; transform: rotate(25deg); }
-.paw-4 { top: 55%; right: 15%; transform: rotate(-15deg); }
-.paw-5 { bottom: 20%; left: 8%; transform: rotate(10deg); }
-.paw-6 { bottom: 35%; right: 10%; transform: rotate(-25deg); }
-.paw-7 { top: 70%; left: 20%; transform: rotate(20deg); }
-.paw-8 { bottom: 10%; right: 20%; transform: rotate(-30deg); }
-
-/* ⭐ Animação mais leve com transform */
-@keyframes floatPaw {
-  0%, 100% { transform: translateY(0) rotate(var(--rotation)); }
-  50% { transform: translateY(-8px) rotate(var(--rotation)); } /* ⭐ Reduzido de 10px para 8px */
-}
-
-.paw {
-  animation: floatPaw 8s ease-in-out infinite;
-  animation-delay: var(--delay);
-  will-change: transform; /* ⭐ Otimização de performance */
-}
-
-/* Adiciona delay diferente para cada pata */
-.paw-1 { --rotation: 15deg; --delay: 0s; }
-.paw-2 { --rotation: -10deg; --delay: 1s; }
-.paw-3 { --rotation: 25deg; --delay: 2s; }
-.paw-4 { --rotation: -15deg; --delay: 3s; }
-.paw-5 { --rotation: 10deg; --delay: 4s; }
-.paw-6 { --rotation: -25deg; --delay: 5s; }
-.paw-7 { --rotation: 20deg; --delay: 6s; }
-.paw-8 { --rotation: -30deg; --delay: 7s; }
-
-/* Seções com patas de fundo mais concentradas */
-.paw-section {
-  position: relative;
-  z-index: 1;
-}
-
-.paw-section::before {
-  content: "🐾🐾🐾";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  font-size: 32px;
-  opacity: 0.08;
-  pointer-events: none;
-  z-index: -1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 40px;
-  padding: 40px;
-  text-align: center;
-  letter-spacing: 20px;
-  line-height: 2;
 }
 
 .container {
@@ -110,7 +48,6 @@
   gap: 16px;
 }
 
-/* ⭐ TÍTULOS OTIMIZADOS - sem !important desnecessários */
 .section-title {
   font-size: 42px;
   color: #1f2937;
@@ -134,7 +71,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: gap 0.2s ease; /* ⭐ Transição mais específica */
+  transition: gap 0.2s ease;
   font-size: 18px;
 }
 
@@ -149,18 +86,7 @@
   gap: 24px;
 }
 
-/* ⭐ Reduzir animação se preferido */
-@media (prefers-reduced-motion: reduce) {
-  .paw {
-    animation: none !important;
-  }
-  
-  .section-link:hover {
-    gap: 8px;
-  }
-}
-
-/* ⭐ Responsividade */
+/* Responsividade */
 @media (max-width: 1200px) {
   .products-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -210,19 +136,6 @@
     padding: 32px 0;
   }
 
-  /* Diminuir opacidade das patas no mobile */
-  .paw {
-    font-size: 32px;
-    opacity: 0.2;
-  }
-
-  .paw-section::before {
-    font-size: 24px;
-    opacity: 0.05;
-    gap: 20px;
-    letter-spacing: 15px;
-  }
-
   .section-title {
     font-size: 32px;
   }
@@ -252,19 +165,9 @@
   .section-link {
     font-size: 14px;
   }
-
-  .paw {
-    font-size: 24px;
-  }
-
-  .paw-section::before {
-    font-size: 18px;
-    letter-spacing: 10px;
-    gap: 15px;
-  }
 }
 
-/* ⭐ Centralizar títulos */
+/* Centralizar títulos no mobile */
 @media (max-width: 992px) {
   .section-header {
     text-align: center;
@@ -286,97 +189,4 @@
     width: 100%;
     margin-top: 8px;
   }
-}
-
-@media (max-width: 375px) {
-  .section-title {
-    font-size: 26px;
-  }
-  
-  .section-title span {
-    font-size: 22px;
-  }
-}
-
-@media (max-width: 320px) {
-  .section-title {
-    font-size: 24px;
-  }
-  
-  .section-title span {
-    font-size: 20px;
-  }
-}
-
-/* ⭐ Hero titles - sem !important */
-.hero-title {
-  font-size: 48px;
-  font-weight: 900;
-}
-
-.hero-subtitle {
-  font-size: 32px;
-  font-weight: 700;
-}
-
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 40px;
-  }
-  
-  .hero-subtitle {
-    font-size: 28px;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-title {
-    font-size: 36px;
-  }
-  
-  .hero-subtitle {
-    font-size: 24px;
-  }
-}
-
-.section-subtitle {
-  font-size: 20px;
-  color: #6b7280;
-  font-weight: 500;
-  margin-top: 12px;
-  line-height: 1.5;
-  max-width: 800px;
-}
-
-@media (max-width: 992px) {
-  .section-subtitle {
-    font-size: 22px;
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
-@media (max-width: 768px) {
-  .section-subtitle {
-    font-size: 20px;
-    padding: 0 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .section-subtitle {
-    font-size: 18px;
-    padding: 0 12px;
-  }
-}
-
-@media (max-width: 375px) {
-  .section-subtitle {
-    font-size: 16px;
-  }
-}
-
-.section-title + .section-subtitle {
-  margin-top: 8px;
 }
